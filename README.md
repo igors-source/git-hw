@@ -3,69 +3,83 @@
 
 ### Задание 1
 
-1.   Зарегистрируйте аккаунт на GitHub.
-2.    Создайте новый отдельный публичный репозиторий. Обязательно поставьте галочку в поле «Initialize this repository with a README».
-3.    Склонируйте репозиторий, используя https протокол git clone ....
-4.    Перейдите в каталог с клоном репозитория.
-5.    Произведите первоначальную настройку Git, указав своё настоящее имя и email: git config --global user.name и git config --global user.email johndoe@example.com.
-6.    Выполните команду git status и запомните результат.
-7.    Отредактируйте файл README.md любым удобным способом, переведя файл в состояние Modified.
-8.    Ещё раз выполните git status и продолжайте проверять вывод этой команды после каждого следующего шага.
-9.    Посмотрите изменения в файле README.md, выполнив команды git diff и git diff --staged.
-10.    Переведите файл в состояние staged или, как говорят, добавьте файл в коммит, командой git add README.md.
-11.    Ещё раз выполните команды git diff и git diff --staged.
-12.    Теперь можно сделать коммит git commit -m 'First commit'.
-13.    Сделайте git push origin master.
+Установите Zabbix Server с веб-интерфейсом.
+Процесс выполнения
 
-`В качестве ответа добавьте ссылку на этот коммит в ваш md-файл с решением.`
+1.    Выполняя ДЗ, сверяйтесь с процессом отражённым в записи лекции.
+2.  Установите PostgreSQL. Для установки достаточна та версия, что есть в системном репозитороии Debian 11.
+3.    Пользуясь конфигуратором команд с официального сайта, составьте набор команд для установки последней версии Zabbix с поддержкой PostgreSQL и Apache.
+4.    Выполните все необходимые команды для установки Zabbix Server и Zabbix Web Server.
+
+Требования к результаты
+
+    `Прикрепите в файл README.md скриншот авторизации в админке.`
+    `Приложите в файл README.md текст использованных команд в GitHub.`
+
 ### Решение 1
-https://github.com/igors-source/githw/commit/80aa634940369338ec12264a01338b6a687c800d
+```bash
+wget https://repo.zabbix.com/zabbix/6.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.0-4+ubuntu22.04_all.deb
+dpkg -i zabbix-release_6.0-4+ubuntu22.04_all.deb
+apt update
+apt install zabbix-server-pgsql zabbix-frontend-php php8.1-pgsql zabbix-apache-conf zabbix-sql-scripts zabbix-agent
+sudo -u postgres createuser --pwprompt zabbix
+sudo -u postgres createdb -O zabbix zabbix 
+zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u zabbix psql zabbix 
+sed -i 's/# DBPassword=/DBPassword=modpass/' /etc/zabbix/zabbix_server.conf
+nano /etc/postgresql/14/main/pg_hba.conf
+# добавить строки: 
+# local all all trust
+# host all all 0.0.0.0/0 trust
+systemctl restart zabbix-server apache2
+systemctl enable zabbix-server apache2 
+```
+![авториация в админке](img/Clipboard01.jpg)
 
 ### Задание 2
 
- 1.   Создайте файл .gitignore (обратите внимание на точку в начале файла) и проверьте его статус сразу после создания.
- 2.   Добавьте файл .gitignore в следующий коммит git add....
- 3.   Напишите правила в этом файле, чтобы игнорировать любые файлы .pyc, а также все файлы в директории cache.
- 4.   Сделайте коммит и пуш.
+ Установите Zabbix Agent на два хоста.
+Процесс выполнения
 
-`В качестве ответа добавьте ссылку на этот коммит в ваш md-файл с решением.`
+1.    Выполняя ДЗ, сверяйтесь с процессом отражённым в записи лекции.
+2.    Установите Zabbix Agent на 2 вирт.машины, одной из них может быть ваш Zabbix Server.
+3.    Добавьте Zabbix Server в список разрешенных серверов ваших Zabbix Agentов.
+4.    Добавьте Zabbix Agentов в раздел Configuration > Hosts вашего Zabbix Servera.
+5.    Проверьте, что в разделе Latest Data начали появляться данные с добавленных агентов.
+
+Требования к результаты
+
+   ` Приложите в файл README.md скриншот раздела Configuration > Hosts, где видно, что агенты подключены к серверу
+    Приложите в файл README.md скриншот лога zabbix agent, где видно, что он работает с сервером
+    Приложите в файл README.md скриншот раздела Monitoring > Latest data для обоих хостов, где видны поступающие от агентов данные.
+    Приложите в файл README.md текст использованных команд в GitHub`
+
 ### Решение 2
-https://github.com/igors-source/githw/commit/70e91822da7a67d8e735fc0d3630ee0c7ce46b89
-
-
+![conf hosts](img/Clipboard02.jpg)
+![zab agent](img/Clipboard03.jpg)
+![mon latest data](img/Clipboard04.jpg)
+```bash
+agent
+sudo -i
+apt update
+wget https://repo.zabbix.com/zabbix/6.0/ubuntu-arm64/pool/main/z/zabbix-release/zabbix-release_6.0-5+ubuntu22.04_all.deb
+dpkg -i zabbix-release_6.0-5+ubuntu22.04_all.deb
+apt update 
+apt install zabbix-agent
+systemctl restart zabbix-agent
+systemctl enable zabbix-agent 
+nano /etc/zabbix/zabbix_agent2.conf
+# редактировать строки строки: 
+# Server=адрес сервера
+systemctl restart zabbix-agent
+systemctl enable zabbix-agent
+```
 ### Задание 3
 
-1.    Создайте новую ветку dev и переключитесь на неё.
-2.    Создайте в ветке dev файл test.sh с произвольным содержимым.
-3.    Сделайте несколько коммитов и пушей в ветку dev, имитируя активную работу над файлом в процессе разработки.
-4.    Переключитесь на основную ветку.
-5.    Добавьте файл main.sh в основной ветке с произвольным содержимым, сделайте комит и пуш . Так имитируется продолжение общекомандной разработки в основной ветке во время разработки отдельного функционала в dev ветке.
-6.    Сделайте мердж dev ветки в основную с помощью git merge dev. Напишите осмысленное сообщение в появившееся окно комита.
-7.    Сделайте пуш в основной ветке.
-8.    Не удаляйте ветку dev.
+Установите Zabbix Agent на Windows (компьютер) и подключите его к серверу Zabbix.
+Требования к результаты
 
-`В качестве ответа прикрепите ссылку на граф коммитов https://github.com/ваш-логин/ваш-репозиторий/network в ваш md-файл с решением.`
+   ` Приложите в файл README.md скриншот раздела Latest Data, где видно свободное место на диске C:`
 ### Решение 3
 
-https://github.com/igors-source/githw/network
-
-## Дополнительные задания (со звездочкой*)
-
-Эти задания дополнительные (не обязательные к выполнению) и никак не повлияют на получение вами зачета по этому домашнему заданию. Вы можете их выполнить, если хотите глубже и/или шире разобраться в материале.
-
-### Задание 4
-
-
- 1.   Создайте ветку conflict и переключитесь на неё.
- 2.   Внесите изменения в файл test.sh.
- 3.   Сделайте коммит и пуш.
- 4.   Переключитесь на основную ветку.
- 5.   Измените ту же самую строчку в файле test.sh.
- 6.   Сделайте коммит и пуш.
- 7.   Сделайте мердж ветки conflict в основную ветку и решите конфликт так, чтобы в результате в файле оказался код из ветки conflict.
-
-В качестве ответа на задание прикрепите ссылку на граф коммитов https://github.com/ваш-логин/ваш-репозиторий/network в ваш md-файл с решением.
-
-
-### Решение 4
-https://github.com/igors-source/githw/network
+![free space1](img/Clipboard06.jpg)
+![free space2](img/Clipboard07.jpg)
