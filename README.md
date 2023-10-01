@@ -1,4 +1,4 @@
-# Домашнее задание к занятию "`"Git"`" - `Шадрин Игорь`
+# Домашнее задание к занятию "`Система мониторинга Zabbix`" - `Шадрин Игорь`
 
 
 ### Задание 1
@@ -18,6 +18,7 @@
 
 ### Решение 1
 ```bash
+sudo -i
 wget https://repo.zabbix.com/zabbix/6.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.0-4+ubuntu22.04_all.deb
 dpkg -i zabbix-release_6.0-4+ubuntu22.04_all.deb
 apt update
@@ -58,7 +59,6 @@ systemctl enable zabbix-server apache2
 ![zab agent](img/Clipboard03.jpg)
 ![mon latest data](img/Clipboard04.jpg)
 ```bash
-agent
 sudo -i
 apt update
 wget https://repo.zabbix.com/zabbix/6.0/ubuntu-arm64/pool/main/z/zabbix-release/zabbix-release_6.0-5+ubuntu22.04_all.deb
