@@ -59,3 +59,45 @@ build:
    - docker build .
 
 ```
+
+### Задание 3
+
+Измените CI так, чтобы:
+
+1.    этап сборки запускался сразу, не дожидаясь результатов тестов;
+2.    тесты запускались только при изменении файлов с расширением *.go.
+
+`В качестве ответа добавьте в шаблон с решением файл gitlab-ci.yml своего проекта или вставьте код в соответсвующее поле в шаблоне.`
+
+### Решение 3
+```yml
+stages:
+  - test
+  - check
+  - build
+
+test:
+  stage: test
+  image: golang:1.17
+  rules:
+    - changes:
+        - "**/*.go"
+  script: 
+   - go test .
+
+check:
+ stage: check
+ image:
+  name: sonarsource/sonar-scanner-cli
+  entrypoint: [""]
+ variables:
+ script:
+  - sonar-scanner -Dsonar.projectKey=hw1 -Dsonar.sources=. -Dsonar.host.url=http://gitlab.localdomain:9000 -Dsonar.login=sqp_c3c65988b682b750445436ff82258fb57dd91842
+
+build:
+  stage: .pre
+  image: docker:latest
+  when: on_success
+  script:
+   - docker build .
+```
