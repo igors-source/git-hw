@@ -95,7 +95,6 @@ check:
 build:
   stage: .pre
   image: docker:latest
-  when: on_success
   script:
    - docker build .
 ```
