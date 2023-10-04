@@ -11,7 +11,7 @@
 `В качестве ответа в репозиторий шаблона с решением добавьте скриншоты с настройками раннера в проекте.`
 
 ### Решение 1
-![runner](img/Clipboard01.jpg)
+![builds](img/Clipboard02.jpg)
 
 ### Задание 2
 
@@ -26,8 +26,7 @@
 
 
 ### Решение 2
-
-![builds](img/Clipboard02.jpg)
+![runner](img/Clipboard01.jpg)
 
 ```yml
 stages:
