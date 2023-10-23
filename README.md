@@ -1,129 +1,111 @@
-# Домашнее задание к занятию «Кластеризация и балансировка нагрузки» - `Шадрин Игорь`
+# Домашнее задание к занятию «Резервное копирование» - `Шадрин Игорь`
 ### Задание 1
-- Запустите два simple python сервера на своей виртуальной машине на разных портах
-- Установите и настройте HAProxy, воспользуйтесь материалами к лекции по [ссылке](2/)
-- Настройте балансировку Round-robin на 4 уровне.
-- На проверку направьте конфигурационный файл haproxy, скриншоты, где видно перенаправление запросов на разные серверы при обращении к HAProxy.
+- Составьте команду rsync, которая позволяет создавать зеркальную копию домашней директории пользователя в директорию `/tmp/backup`
+- Необходимо исключить из синхронизации все директории, начинающиеся с точки (скрытые)
+- Необходимо сделать так, чтобы rsync подсчитывал хэш-суммы для всех файлов, даже если их время модификации и размер идентичны в источнике и приемнике.
+- На проверку направить скриншот с командой и результатом ее выполнения
+
 ### Решение 1
-```
-frontend example  # секция фронтенд
-        mode http
-        bind :8088
-        default_backend web_servers
-
-
-backend web_servers    # секция бэкенд
-        mode http
-        balance roundrobin
-        server s1 127.0.0.1:3333
-        server s2 127.0.0.1:4444
-
-listen web_tcp # балансировка на 4 уровне
-
-        bind :1325
-
-        server s1 127.0.0.1:3333
-        server s2 127.0.0.1:4444
+```bash
+rsync -av --checksum --ignore-times --exclude='.*/' /home/motorher /tmp/backup
 ```
 ![Alt text](img/1.png)
+
 ### Задание 2
-- Запустите три simple python сервера на своей виртуальной машине на разных портах
-- Настройте балансировку Weighted Round Robin на 7 уровне, чтобы первый сервер имел вес 2, второй - 3, а третий - 4
-- HAproxy должен балансировать только тот http-трафик, который адресован домену example.local
-- На проверку направьте конфигурационный файл haproxy, скриншоты, где видно перенаправление запросов на разные серверы при обращении к HAProxy c использованием домена example.local и без него.
+- Написать скрипт и настроить задачу на регулярное резервное копирование домашней директории пользователя с помощью rsync и cron.
+- Резервная копия должна быть полностью зеркальной
+- Резервная копия должна создаваться раз в день, в системном логе должна появляться запись об успешном или неуспешном выполнении операции
+- Резервная копия размещается локально, в директории `/tmp/backup`
+- На проверку направить файл crontab и скриншот с результатом работы утилиты.
+
 ### Решение 2
+Скрипт:
+```bash
+#!/bin/bash
+rsync -av  /home/motorher /tmp/backup
+if [[ $? -eq 0 ]]; then
+    logger "rsync backup sucess"
+else
+    logger "backup error code = $?"
+fi
 ```
-frontend example  # секция фронтенд
-        mode http
-        bind :8088
-        acl ACL_example.com hdr(host) -i example.com
-        use_backend web_servers if ACL_example.com
+Crontab и результат выполнения:
+![Alt text](2.png)
 
-backend web_servers    # секция бэкенд
-        mode http
-        balance roundrobin
-        server s1 127.0.0.1:3333 weight 2
-        server s2 127.0.0.1:4444 weight 3
-        server s3 127.0.0.1:5555 weight 4
-```
-![Alt text](img/2.png)
-### Задание 3
-- Настройте связку HAProxy + Nginx как было показано на лекции.
-- Настройте Nginx так, чтобы файлы .jpg выдавались самим Nginx (предварительно разместите несколько тестовых картинок в директории /var/www/), а остальные запросы переадресовывались на HAProxy, который в свою очередь переадресовывал их на два Simple Python server.
-- На проверку направьте конфигурационные файлы nginx, HAProxy, скриншоты с запросами jpg картинок и других файлов на Simple Python Server, демонстрирующие корректную настройку.
+---
+
+## Задания со звёздочкой*
+Эти задания дополнительные. Их можно не выполнять. На зачёт это не повлияет. Вы можете их выполнить, если хотите глубже разобраться в материале.
+
+---
+
+### Задание 3*
+- Настройте ограничение на используемую пропускную способность rsync до 1 Мбит/c
+- Проверьте настройку, синхронизируя большой файл между двумя серверами
+- На проверку направьте команду и результат ее выполнения в виде скриншота
+  
 ### Решение 3
-Конфигурация Nginx:
-```
-server {
-   listen       80;
+```bash
+rsync -avz -e "ssh -p 2223 -i ./local.rsa" --bwlimit=1000 --progress /home/motorher/Downloads/ubuntu-22.04.3-live-server-amd64.iso  motorher@127.0.0.1:/tmp/backup
 
-
-   server_name  example-http.com;
-
-
-   access_log   /var/log/nginx/example-http.com-acess.log;
-   error_log    /var/log/nginx/example-http.com-error.log;
-
-   location ~ \.(jpg)$ {
-        root /var/www;
-   }
-   location / {
-        proxy_pass      http://localhost:1325;
-   }
-
-}
-```
-Конфигурация Haproxy:
-```
-frontend example  # секция фронтенд
-        mode http
-        bind :8088
-        default_backend web_servers
-
-
-backend web_servers    # секция бэкенд
-        mode http
-        balance roundrobin
-        server s1 127.0.0.1:3333
-        server s2 127.0.0.1:4444
-
-listen web_tcp # балансировка на 4 уровне
-
-        bind :1325
-
-        server s1 127.0.0.1:3333
-        server s2 127.0.0.1:4444
 ```
 ![Alt text](img/3.png)
 
-### Задание 4
-- Запустите 4 simple python сервера на разных портах.
-- Первые два сервера будут выдавать страницу index.html вашего сайта example1.local (в файле index.html напишите example1.local)
-- Вторые два сервера будут выдавать страницу index.html вашего сайта example2.local (в файле index.html напишите example2.local)
-- Настройте два бэкенда HAProxy
-- Настройте фронтенд HAProxy так, чтобы в зависимости от запрашиваемого сайта example1.local или example2.local запросы перенаправлялись на разные бэкенды HAProxy
-- На проверку направьте конфигурационный файл HAProxy, скриншоты, демонстрирующие запросы к разным фронтендам и ответам от разных бэкендов.
+
+### Задание 4*
+- Напишите скрипт, который будет производить инкрементное резервное копирование домашней директории пользователя с помощью rsync на другой сервер
+- Скрипт должен удалять старые резервные копии (сохранять только последние 5 штук)
+- Напишите скрипт управления резервными копиями, в нем можно выбрать резервную копию и данные восстановятся к состоянию на момент создания данной резервной копии.
+- На проверку направьте скрипт и скриншоты, демонстрирующие его работу в различных сценариях.
+
 ### Решение 4
+Скрипт для создания резервных копий:
+```bash
+#!/bin/bash
+rsync -avhb -e  "ssh -p 2223 -i ./test" --delete --backup-dir=copy$(date +%d.%m.%Y_%H:%M) /home/motorher/ser1  motorher@127.0.0.1:/tmp/backup/
+ssh -p 2223 -i ./test 127.0.0.1 'bash -s' <<\EOF
+cd '/tmp/backup'
+NUM_C=$(ls -l | grep 'copy' | wc -l)
+if [[ "$NUM_C" -gt "5" ]]; then
+ while [ "$NUM_C" -gt "5" ]
+  do
+    rm -rf $(ls -l | grep 'copy' | cut -d ' ' -f 9 | head -n1)
+    NUM_C=$(ls -l | grep 'copy' | wc -l)
+  done
+fi
+
+EOF
 ```
-frontend example  # секция фронтенд
-        mode http
-        bind :8088
-        acl ACL_example1.local hdr(host) -i example1.local
-        acl ACL_example2.local hdr(host) -i example2.local
-        use_backend web_servers1 if ACL_example1.local
-        use_backend web_servers2 if ACL_example2.local
+Результат выполнения:
+![Alt text](img/4.1.png)
 
+Скрипт для управления резервными копиями:
+```bash
+#!/bin/bash
+#вывести список доступных каталогов с бекапом
+ssh -p 2223 -i ./test 127.0.0.1 'bash -s' <<\EOF
+cd '/tmp/backup'
+NUM_C=$(ls -l | grep 'copy' | cut -d ' ' -f 9 | wc -l)
+for (( i=1; i <= $NUM_C; i++ ))
+do
+ echo "$i) $(ls -l | grep 'copy' | cut -d ' ' -f 9 | head -n$i | tail -n1  )"
+done
 
-backend web_servers1    # бекенд example1.local
-        mode http
-        balance roundrobin
-        server s1 127.0.0.1:3333
-        server s2 127.0.0.1:4444
+EOF
+#выдернуть количество каталогов с бекапом
+NUM_C=$(ssh -p 2223 -i ./test 127.0.0.1 "cd /tmp/backup ;  ls -l | grep 'copy' | cut -d ' ' -f 9 | wc -l")
 
-backend web_servers2    # бэкенд example2.local
-        mode http
-        balance roundrobin
-        server s3 127.0.0.1:7777
-        server s5 127.0.0.1:5555
+read -p 'Введите номер для восстановления: ' NUM_R
+#проверка на корректность ввода
+for (( j=1; j <= $NUM_C; j++ ))
+do
+ if [[ $j -eq $NUM_R  ]]; then
+  rsync -arv --delete -e "ssh -p 2223 -i ./test" motorher@127.0.0.1:/tmp/backup/ser1 /home/motorher/
+  R_NAME=$(ssh -p 2223 -i ./test 127.0.0.1 "cd /tmp/backup ;  ls -l | grep 'copy' | cut -d ' ' -f 9 | head -n$j | tail -n1")
+  rsync -arv -e "ssh -p 2223 -i ./test" motorher@127.0.0.1:/tmp/backup/$R_NAME/ser1 /home/motorher/
+ fi
+done
 ```
-![Alt text](img/4.png)
+
+Результат выполнения:
+![Alt text](img/4.2.png)
