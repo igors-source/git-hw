@@ -32,7 +32,7 @@
 
 ## Решение 1 
 
-# Terraform Playbook
+### Terraform Playbook
 ```c
 terraform {
   required_providers {
@@ -134,9 +134,9 @@ resource "yandex_lb_network_load_balancer" "b1" {
   }
 }
 ```
-# Скриншот статуса балансировщика и целевой группы
+### Скриншот статуса балансировщика и целевой группы
 ![Alt text](img/1-1.png)
-# Скриншот страницы, которая открылась при запросе IP-адреса балансировщика
+### Скриншот страницы, которая открылась при запросе IP-адреса балансировщика
 ![Alt text](img/1-2.png)
 ---
 
@@ -171,7 +171,7 @@ resource "yandex_lb_network_load_balancer" "b1" {
 
 ## Решение 2*
 
-# Terraform Playbook
+### Terraform Playbook
 ```c
 terraform {
   required_providers {
@@ -288,7 +288,7 @@ resource "yandex_vpc_subnet" "subnet-1" {
 
 ```
 
-# Terraform metadata
+### Terraform metadata
 ```yml
 #cloud-config
 users:
@@ -312,8 +312,8 @@ runcmd:
   - [ systemctl, enable, nginx.service ]
   - [ systemctl, start, --no-block, nginx.service ]
 ```
-# Скриншот статуса балансировщика и целевой группы.
+### Скриншот статуса балансировщика и целевой группы.
 ![Alt text](img/2-1.png)
 
-# Скриншот страницы, которая открылась при запросе IP-адреса балансировщика.
+### Скриншот страницы, которая открылась при запросе IP-адреса балансировщика.
 ![Alt text](img/2-2.png)
