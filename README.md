@@ -1,319 +1,74 @@
-# Домашнее задание к занятию «Отказоустойчивость в облаке» «Шадрин Игорь» 
+### Задание 1. СУБД
 
+### Кейс
+Крупная строительная компания, которая также занимается проектированием и девелопментом, решила создать 
+правильную архитектуру для работы с данными. Ниже представлены задачи, которые необходимо решить для
+каждой предметной области. 
 
-## Задание 1 
-
-Возьмите за основу [решение к заданию 1 из занятия «Подъём инфраструктуры в Яндекс Облаке»](https://github.com/netology-code/sdvps-homeworks/blob/main/7-03.md#задание-1).
-
-1. Теперь вместо одной виртуальной машины сделайте terraform playbook, который:
-
-- создаст 2 идентичные виртуальные машины. Используйте аргумент [count](https://www.terraform.io/docs/language/meta-arguments/count.html) для создания таких ресурсов;
-- создаст [таргет-группу](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/lb_target_group). Поместите в неё созданные на шаге 1 виртуальные машины;
-- создаст [сетевой балансировщик нагрузки](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/lb_network_load_balancer), который слушает на порту 80, отправляет трафик на порт 80 виртуальных машин и http healthcheck на порт 80 виртуальных машин.
-
-Рекомендуем изучить [документацию сетевого балансировщика нагрузки](https://cloud.yandex.ru/docs/network-load-balancer/quickstart) для того, чтобы было понятно, что вы сделали.
-
-2. Установите на созданные виртуальные машины пакет Nginx любым удобным способом и запустите Nginx веб-сервер на порту 80.
-
-3. Перейдите в веб-консоль Yandex Cloud и убедитесь, что: 
-
-- созданный балансировщик находится в статусе Active,
-- обе виртуальные машины в целевой группе находятся в состоянии healthy.
-
-4. Сделайте запрос на 80 порт на внешний IP-адрес балансировщика и убедитесь, что вы получаете ответ в виде дефолтной страницы Nginx.
-
-*В качестве результата пришлите:*
-
-*1. Terraform Playbook.*
-
-*2. Скриншот статуса балансировщика и целевой группы.*
-
-*3. Скриншот страницы, которая открылась при запросе IP-адреса балансировщика.*
-
-## Решение 1 
-
-### Terraform Playbook
-```c
-terraform {
-  required_providers {
-    yandex = {
-      source = "yandex-cloud/yandex"
-    }
-  }
-  required_version = ">= 0.13"
-}
-
-provider "yandex" {
-  token     = var.yandex_cloud_token 
-  cloud_id  = "b1g6fo99h0qim9jv8gnk"
-  folder_id = "b1g2495p8ldt10kjk28s"
-  zone      = "ru-central1-a"
-}
-
-resource "yandex_compute_instance" "vm-1" {
+Какие типы СУБД, на ваш взгляд, лучше всего подойдут для решения этих задач и почему? 
  
-  count = 2
-  
-  name = "terraform${count.index}"
-  
- 
-  resources {
-    core_fraction = 5
-    cores  = 2
-    memory = 2
-  }
+1.1. Бюджетирование проектов с дальнейшим формированием финансовых аналитических отчётов и прогнозирования рисков.
+СУБД должна гарантировать целостность и чёткую структуру данных.
 
-  boot_disk {
-    initialize_params {
-      image_id = "fd8tgblovu5dklvrp29h"
-    }
-  }
 
-  network_interface {
-    subnet_id = yandex_vpc_subnet.subnet-1.id
-    nat       = true
-  }
-  
-  metadata = {
-    user-data = "${file("./meta.txt")}"
-  }
+1.2. Под каждый девелоперский проект создаётся отдельный лендинг, и все данные по лидам стекаются в CRM к 
+маркетологам и менеджерам по продажам. Какой тип СУБД лучше использовать для лендингов и для CRM? 
+СУБД должны быть гибкими и быстрыми.
 
-}
-resource "yandex_vpc_network" "network-1" {
-  name = "network-1"
-}
 
-resource "yandex_vpc_subnet" "subnet-1" {
-  name           = "subnet-1"
-  zone           = "ru-central1-a"
-  network_id     = yandex_vpc_network.network-1.id
-  v4_cidr_blocks = ["192.168.10.0/24"]
-}
+1.3. Отдел контроля качества решил создать базу по корпоративным нормам и правилам, обучающему материалу 
+и так далее, сформированную согласно структуре компании. СУБД должна иметь простую и понятную структуру.
 
-resource "yandex_lb_target_group" "g1" {
-  name      = "my-target-group"
-  region_id = "ru-central1"
 
-  target {
-    subnet_id = "${yandex_vpc_subnet.subnet-1.id}"
-    address   = "${yandex_compute_instance.vm-1.0.network_interface.0.ip_address}"
-  }
+1.4. Департамент логистики нуждается в решении задач по быстрому формированию маршрутов доставки материалов 
+по объектам и распределению курьеров по маршрутам с доставкой документов. СУБД должна уметь быстро работать
+со связями.
 
-  target {
-    subnet_id = "${yandex_vpc_subnet.subnet-1.id}"
-    address   = "${yandex_compute_instance.vm-1.1.network_interface.0.ip_address}"
-  }
-}
-
-resource "yandex_lb_network_load_balancer" "b1" {
-  name = "my-nlb1"
-
-  listener {
-    name = "my-listener"
-    port = 80
-    protocol    = "tcp"
-    external_address_spec {
-      ip_version = "ipv4"
-    }
-  }
-
-  attached_target_group {
-    target_group_id = "${yandex_lb_target_group.g1.id}"
-
-    healthcheck {
-      name = "http"
-      interval            = 2
-      timeout             = 1
-      unhealthy_threshold = 2
-      healthy_threshold   = 2
-      http_options {
-        port = 80
-        path = "/"
-      }
-    }
-  }
-}
-```
-### Скриншот статуса балансировщика и целевой группы
-![Alt text](img/1-1.png)
-### Скриншот страницы, которая открылась при запросе IP-адреса балансировщика
-![Alt text](img/1-2.png)
+### Решение 1
 ---
+1.1. SQL база данных, реляционная модель может гарантировать целостность данных и четкую структуру.
+1.2. Одна из NoSQL баз данных будет предоставлять достаточную гибкость для лендинга, однако для CRM лучше использовать SQL базу данных.
+1.3. Модель "Ключ - значение", обладает простой и понятной структурой.
+1.4. Графовая база данных лучше подходит для работы со связями. 
+### Задание 2. Транзакции
 
-## Задания со звёздочкой*
-Эти задания дополнительные. Выполнять их не обязательно. На зачёт это не повлияет. Вы можете их выполнить, если хотите глубже разобраться в материале.
+2.1. Пользователь пополняет баланс счёта телефона, распишите пошагово, какие действия должны произойти для того, чтобы 
+транзакция завершилась успешно. Ориентируйтесь на шесть действий.
+
+### Решение 2
+
+1. Открыть транзакцию.
+2. Проверить, есть ли сумма на счету для оплаты
+3. Заблокировать сумму на счета на оплату
+4. Записать сумму на счет телефона
+5. Списать сумму со счета на оплату
+6. Закрыть транзацкию.
+
 
 ---
 
-## Задание 2*
+### Задание 3. SQL vs NoSQL
 
-1. Теперь вместо создания виртуальных машин создайте [группу виртуальных машин с балансировщиком нагрузки](https://cloud.yandex.ru/docs/compute/operations/instance-groups/create-with-balancer).
+3.1. Напишите пять преимуществ SQL-систем по отношению к NoSQL. 
 
-2. Nginx нужно будет поставить тоже автоматизированно. Для этого вам нужно будет подложить файл установки Nginx в user-data-ключ [метадаты](https://cloud.yandex.ru/docs/compute/concepts/vm-metadata) виртуальной машины.
+### Решение 3
 
-- [Пример файла установки Nginx](https://github.com/nar3k/yc-public-tasks/blob/master/terraform/metadata.yaml).
-- [Как подставлять файл в метадату виртуальной машины.](https://github.com/nar3k/yc-public-tasks/blob/a6c50a5e1d82f27e6d7f3897972adb872299f14a/terraform/main.tf#L38)
+1. Наличие SQL - универсального языка запросов, который используется всеми реляционными системами.
+2. Соответствие ACID - сохранность данных и предсказуемость работы базы данных
+3. Большой опыт разработчиков и техническая поддержка, так как стандарт устоявшийся и стандартизирован
+4. SQL более универсален (NoSQL зачастую узконаправлены и хороши в конкретной задаче)
+5. SQL базы больше подходят для сложных запросов (выборок).
 
-3. Перейдите в веб-консоль Yandex Cloud и убедитесь, что: 
+---
 
-- созданный балансировщик находится в статусе Active,
-- обе виртуальные машины в целевой группе находятся в состоянии healthy.
+### Задание 4. Кластеры
 
-4. Сделайте запрос на 80 порт на внешний IP-адрес балансировщика и убедитесь, что вы получаете ответ в виде дефолтной страницы Nginx.
+Необходимо производить большое количество вычислений при работе с огромным количеством данных, под эту задачу выделено 1000 машин. 
 
-*В качестве результата пришлите*
+На основе какого критерия будете выбирать тип СУБД и какая модель *распределённых вычислений* 
+здесь справится лучше всего и почему?
 
-*1. Terraform Playbook.*
+### Решение 4
 
-*2. Скриншот статуса балансировщика и целевой группы.*
-
-*3. Скриншот страницы, которая открылась при запросе IP-адреса балансировщика.*
-
-## Решение 2*
-
-### Terraform Playbook
-```c
-terraform {
-  required_providers {
-    yandex = {
-      source = "yandex-cloud/yandex"
-    }
-  }
-  required_version = ">= 0.13"
-}
-
-provider "yandex" {
-  token     = var.yandex_cloud_token 
-  cloud_id  = "b1g6fo99h0qim9jv8gnk"
-  folder_id = "b1g2495p8ldt10kjk28s"
-  zone      = "ru-central1-a"
-}
-
-resource "yandex_iam_service_account" "ig-sa" {
-  name        = "ig-sa"
-  description = "service account to manage IG"
-}
-
-resource "yandex_resourcemanager_folder_iam_member" "editor" {
-  folder_id = "b1g2495p8ldt10kjk28s"
-  role      = "editor"
-  member    = "serviceAccount:${yandex_iam_service_account.ig-sa.id}"
-}
-
-resource "yandex_compute_instance_group" "ig-1" {
-  name                = "fixed-ig-with-balancer"
-  folder_id           = "b1g2495p8ldt10kjk28s"
-  service_account_id  = "${yandex_iam_service_account.ig-sa.id}"
-  deletion_protection = false
-  instance_template {
-    platform_id = "standard-v3"
-    resources {
-      core_fraction = 20
-      cores  = 2
-      memory = 2
-    }
-
-    boot_disk {
-      mode = "READ_WRITE"
-      initialize_params {
-        image_id = "fd8tgblovu5dklvrp29h"
-      }
-    }
-
-    network_interface {
-      network_id = "${yandex_vpc_network.network-1.id}"
-      subnet_ids = ["${yandex_vpc_subnet.subnet-1.id}"]
-      nat = true
-    }
-
-    metadata = {
-    user-data = "${file("./meta.yml")}"
-    }
-  }
-
-  scale_policy {
-    fixed_scale {
-      size = 2
-    }
-  }
-
-  allocation_policy {
-    zones = ["ru-central1-a"]
-  }
-
-  deploy_policy {
-    max_unavailable = 1
-    max_expansion   = 0
-  }
-
-  load_balancer {
-    target_group_name        = "target-group"
-    target_group_description = "load balancer target group"
-  }
-}
-
-resource "yandex_lb_network_load_balancer" "lb-1" {
-  name = "network-load-balancer-1"
-
-  listener {
-    name = "network-load-balancer-1-listener"
-    port = 80
-    external_address_spec {
-      ip_version = "ipv4"
-    }
-  }
-
-  attached_target_group {
-    target_group_id = yandex_compute_instance_group.ig-1.load_balancer.0.target_group_id
-
-    healthcheck {
-      name = "http"
-      http_options {
-        port = 80
-        path = "/"
-      }
-    }
-  }
-}
-resource "yandex_vpc_network" "network-1" {
-  name = "network1"
-}
-
-resource "yandex_vpc_subnet" "subnet-1" {
-  name           = "subnet1"
-  zone           = "ru-central1-a"
-  network_id     = "${yandex_vpc_network.network-1.id}"
-  v4_cidr_blocks = ["192.168.10.0/24"]
-}
-
-```
-
-### Terraform metadata
-```yml
-#cloud-config
-users:
-  - name: user
-    groups: sudo
-    shell: /bin/bash
-    sudo: ['ALL=(ALL) NOPASSWD:ALL']
-    ssh-authorized-keys:
-      - ******
-repo_update: true
-repo_upgrade: true
-apt:
-  preserve_sources_list: true
-
-
-packages:
-  - nginx
-
-runcmd:
-  - [ systemctl, nginx-reload ]
-  - [ systemctl, enable, nginx.service ]
-  - [ systemctl, start, --no-block, nginx.service ]
-```
-### Скриншот статуса балансировщика и целевой группы.
-![Alt text](img/2-1.png)
-
-### Скриншот страницы, которая открылась при запросе IP-адреса балансировщика.
-![Alt text](img/2-2.png)
+Критерий выбора - поддержка работы в кластере, либо горизонтальная масштабируемость. 
+Предполагаю, что лучшим решением будет модель CP, так как она гарантирует целостность данных в  таком крупном кластере и способность фунционировать в условиях распада, в ущерб доступности пользователя.
