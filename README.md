@@ -41,10 +41,11 @@ customer         | customer_id
 ```
 
 ### Решение 2
-
+```sql
 ELECT  TABLE_NAME, COLUMN_NAME
 FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'sakila' AND COLUMN_KEY = 'PRI' ORDER BY table_name;
+WHERE TABLE_SCHEMA = 'sakila' AND COLUMN_KEY = 'PRI' ORDER BY table_name
+```
 ```
 TABLE_NAME   |COLUMN_NAME |
 -------------+------------+
