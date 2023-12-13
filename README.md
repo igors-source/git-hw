@@ -45,7 +45,7 @@ customer         | customer_id
 ELECT  TABLE_NAME, COLUMN_NAME
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA = 'sakila' AND COLUMN_KEY = 'PRI' ORDER BY table_name;
-
+```
 TABLE_NAME   |COLUMN_NAME |
 -------------+------------+
 actor        |actor_id    |
@@ -66,7 +66,7 @@ payment      |payment_id  |
 rental       |rental_id   |
 staff        |staff_id    |
 store        |store_id    |
-
+```
 
 ### Задание 3*
 3.1. Уберите у пользователя sys_temp права на внесение, изменение и удаление данных из базы sakila.
