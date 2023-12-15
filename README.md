@@ -23,8 +23,9 @@ WHERE district LIKE 'K%a' AND district NOT LIKE '% %';
 ```sql
 SELECT DISTINCT customer_id, staff_id, rental_id, amount, payment_date
 FROM payment
-WHERE payment_date > '2005-06-15' AND payment_date < '2005-06-19 00:00:00' AND amount > 10
+WHERE payment_date >= '2005-06-15' AND payment_date < '2005-06-19 00:00:00' AND amount > 10
 ORDER BY payment_date;
+
 ```
 
 ![Alt text](img/02.jpg)
