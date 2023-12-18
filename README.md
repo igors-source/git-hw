@@ -43,10 +43,10 @@ WHERE length  > ( SELECT AVG(length) FROM film)
 
 ### Решение 3
 ```sql
-SELECT SUM(p.amount), MONTH(r.rental_date), COUNT(1)
+SELECT SUM(p.amount), DATE_FORMAT(r.rental_date, "%Y %m") as YM , COUNT(1)
 FROM payment p
 JOIN rental r ON r.rental_id = p.rental_id 
-GROUP BY MONTH(r.rental_date)
+GROUP BY YM 
 ORDER BY  SUM(p.amount) DESC 
 LIMIT 1
 
