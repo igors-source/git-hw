@@ -1,71 +1,82 @@
-# Домашнее задание к занятию "`"Git"`" - `Шадрин Игорь`
+# Домашнее задание к занятию «Индексы»  «Шадрин Игорь» 
 
 
 ### Задание 1
 
-1.   Зарегистрируйте аккаунт на GitHub.
-2.    Создайте новый отдельный публичный репозиторий. Обязательно поставьте галочку в поле «Initialize this repository with a README».
-3.    Склонируйте репозиторий, используя https протокол git clone ....
-4.    Перейдите в каталог с клоном репозитория.
-5.    Произведите первоначальную настройку Git, указав своё настоящее имя и email: git config --global user.name и git config --global user.email johndoe@example.com.
-6.    Выполните команду git status и запомните результат.
-7.    Отредактируйте файл README.md любым удобным способом, переведя файл в состояние Modified.
-8.    Ещё раз выполните git status и продолжайте проверять вывод этой команды после каждого следующего шага.
-9.    Посмотрите изменения в файле README.md, выполнив команды git diff и git diff --staged.
-10.    Переведите файл в состояние staged или, как говорят, добавьте файл в коммит, командой git add README.md.
-11.    Ещё раз выполните команды git diff и git diff --staged.
-12.    Теперь можно сделать коммит git commit -m 'First commit'.
-13.    Сделайте git push origin master.
+Напишите запрос к учебной базе данных, который вернёт процентное отношение общего размера всех индексов к общему размеру всех таблиц.
 
-`В качестве ответа добавьте ссылку на этот коммит в ваш md-файл с решением.`
-### Решение 1
-https://github.com/igors-source/githw/commit/80aa634940369338ec12264a01338b6a687c800d
+### Решение 1 
+
+```sql
+SELECT SUM(index_length)/(SUM(data_length)/100)
+FROM INFORMATION_SCHEMA.TABLES
+```
+
+![Alt text](img/01.jpg)
 
 ### Задание 2
 
- 1.   Создайте файл .gitignore (обратите внимание на точку в начале файла) и проверьте его статус сразу после создания.
- 2.   Добавьте файл .gitignore в следующий коммит git add....
- 3.   Напишите правила в этом файле, чтобы игнорировать любые файлы .pyc, а также все файлы в директории cache.
- 4.   Сделайте коммит и пуш.
+Выполните explain analyze следующего запроса:
+```sql
+select distinct concat(c.last_name, ' ', c.first_name), sum(p.amount) over (partition by c.customer_id, f.title)
+from payment p, rental r, customer c, inventory i, film f
+where date(p.payment_date) = '2005-07-30' and p.payment_date = r.rental_date and r.customer_id = c.customer_id and i.inventory_id = r.inventory_id
+```
+- перечислите узкие места;
+- оптимизируйте запрос: внесите корректировки по использованию операторов, при необходимости добавьте индексы.
 
-`В качестве ответа добавьте ссылку на этот коммит в ваш md-файл с решением.`
 ### Решение 2
-https://github.com/igors-source/githw/commit/70e91822da7a67d8e735fc0d3630ee0c7ce46b89
+Результат выполнения запроса:
+```sql
+-> Limit: 200 row(s)  (cost=0..0 rows=0) (actual time=463031..463051 rows=200 loops=1)
+    -> Table scan on <temporary>  (cost=2.5..2.5 rows=0) (actual time=463031..463043 rows=200 loops=1)
+        -> Temporary table with deduplication  (cost=0..0 rows=0) (actual time=463031..463031 rows=391 loops=1)
+            -> Window aggregate with buffering: sum(payment.amount) OVER (PARTITION BY c.customer_id,f.title )   (actual time=393451..447239 rows=642000 loops=1)
+                -> Sort: c.customer_id, f.title  (actual time=393451..408370 rows=642000 loops=1)
+                    -> Stream results  (cost=22.6e+6 rows=16.5e+6) (actual time=49.6..377993 rows=642000 loops=1)
+                        -> Nested loop inner join  (cost=22.6e+6 rows=16.5e+6) (actual time=49.5..348961 rows=642000 loops=1)
+                            -> Nested loop inner join  (cost=20.9e+6 rows=16.5e+6) (actual time=49.1..239465 rows=642000 loops=1)
+                                -> Nested loop inner join  (cost=19.3e+6 rows=16.5e+6) (actual time=48.9..129789 rows=642000 loops=1)
+                                    -> Inner hash join (no condition)  (cost=1.65e+6 rows=16.5e+6) (actual time=48.7..14606 rows=634000 loops=1)
+                                        -> Filter: (cast(p.payment_date as date) = '2005-07-30')  (cost=1.72 rows=16500) (actual time=1.87..716 rows=634 loops=1)
+                                            -> Table scan on p  (cost=1.72 rows=16500) (actual time=0.0858..350 rows=16044 loops=1)
+                                        -> Hash
+                                            -> Covering index scan on f using idx_title  (cost=112 rows=1000) (actual time=0.0983..23.8 rows=1000 loops=1)
+                                    -> Covering index lookup on r using rental_date (rental_date=p.payment_date)  (cost=0.969 rows=1) (actual time=0.0484..0.0734 rows=1.01 loops=634000)
+                                -> Single-row index lookup on c using PRIMARY (customer_id=r.customer_id)  (cost=250e-6 rows=1) (actual time=0.0435..0.0645 rows=1 loops=642000)
+                            -> Single-row covering index lookup on i using PRIMARY (inventory_id=r.inventory_id)  (cost=250e-6 rows=1) (actual time=0.0433..0.0644 rows=1 loops=642000)
 
+```
+1) Опетаторы **distinct** (удаление дубликатов) с операторами **over(partition by** (некий аналогк GROUP BY, на сколько я понял, используется для разделения строк по группам и разделам), показались очень ресурсоемкими, так же многочисленные and в операторе where не имеют смысла и добавление такого количества таблиц в оператор from не нужно, лучше использовать join. В итоге аналогичный результат был получен при выполнении следующего кода:
 
-### Задание 3
+```sql
+EXPLAIN ANALYZE                       
+select concat(c.last_name, ' ', c.first_name) as CST,sum(p.amount)
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id 
+WHERE date(p.payment_date) = '2005-07-30'
+GROUP BY c.customer_id
 
-1.    Создайте новую ветку dev и переключитесь на неё.
-2.    Создайте в ветке dev файл test.sh с произвольным содержимым.
-3.    Сделайте несколько коммитов и пушей в ветку dev, имитируя активную работу над файлом в процессе разработки.
-4.    Переключитесь на основную ветку.
-5.    Добавьте файл main.sh в основной ветке с произвольным содержимым, сделайте комит и пуш . Так имитируется продолжение общекомандной разработки в основной ветке во время разработки отдельного функционала в dev ветке.
-6.    Сделайте мердж dev ветки в основную с помощью git merge dev. Напишите осмысленное сообщение в появившееся окно комита.
-7.    Сделайте пуш в основной ветке.
-8.    Не удаляйте ветку dev.
+-> Limit: 200 row(s)  (actual time=970..983 rows=200 loops=1)
+    -> Sort with duplicate removal: CST, `sum(p.amount)`  (actual time=970..975 rows=200 loops=1)
+        -> Table scan on <temporary>  (actual time=935..961 rows=391 loops=1)
+            -> Aggregate using temporary table  (actual time=935..935 rows=391 loops=1)
+                -> Nested loop inner join  (cost=5836 rows=16500) (actual time=3.18..918 rows=634 loops=1)
+                    -> Table scan on c  (cost=61.2 rows=599) (actual time=0.0872..13.3 rows=599 loops=1)
+                    -> Filter: (cast(p.payment_date as date) = '2005-07-30')  (cost=6.89 rows=27.5) (actual time=0.991..1.39 rows=1.06 loops=599)
+                        -> Index lookup on p using idx_fk_customer_id (customer_id=c.customer_id)  (cost=6.89 rows=27.5) (actual time=0.0775..0.684 rows=26.8 loops=599)
+```
+2) Поскольку тема была про индексы, добавил индексирование по дате: 
+```sql
+CREATE INDEX date_pay ON payment(payment_date);
+```
+Это ускорило выполнение скрипта
 
-`В качестве ответа прикрепите ссылку на граф коммитов https://github.com/ваш-логин/ваш-репозиторий/network в ваш md-файл с решением.`
-### Решение 3
-
-https://github.com/igors-source/githw/network
-
-## Дополнительные задания (со звездочкой*)
-
-Эти задания дополнительные (не обязательные к выполнению) и никак не повлияют на получение вами зачета по этому домашнему заданию. Вы можете их выполнить, если хотите глубже и/или шире разобраться в материале.
-
-### Задание 4
-
-
- 1.   Создайте ветку conflict и переключитесь на неё.
- 2.   Внесите изменения в файл test.sh.
- 3.   Сделайте коммит и пуш.
- 4.   Переключитесь на основную ветку.
- 5.   Измените ту же самую строчку в файле test.sh.
- 6.   Сделайте коммит и пуш.
- 7.   Сделайте мердж ветки conflict в основную ветку и решите конфликт так, чтобы в результате в файле оказался код из ветки conflict.
-
-В качестве ответа на задание прикрепите ссылку на граф коммитов https://github.com/ваш-логин/ваш-репозиторий/network в ваш md-файл с решением.
-
-
-### Решение 4
-https://github.com/igors-source/githw/network
+```sql
+-> Limit: 200 row(s)  (cost=4164 rows=193) (actual time=5.06..460 rows=200 loops=1)
+    -> Group aggregate: sum(p.amount)  (cost=4164 rows=193) (actual time=4.98..452 rows=200 loops=1)
+        -> Nested loop inner join  (cost=4144 rows=193) (actual time=2.64..440 rows=313 loops=1)
+            -> Index scan on c using PRIMARY  (cost=0.0228 rows=7) (actual time=0.0662..7.06 rows=284 loops=1)
+            -> Filter: (cast(p.payment_date as date) = '2005-07-30')  (cost=6.89 rows=27.5) (actual time=0.974..1.41 rows=1.1 loops=284)
+                -> Index lookup on p using idx_fk_customer_id (customer_id=c.customer_id)  (cost=6.89 rows=27.5) (actual time=0.0756..0.691 rows=27.1 loops=284)
+```
