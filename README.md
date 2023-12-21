@@ -49,34 +49,36 @@ where date(p.payment_date) = '2005-07-30' and p.payment_date = r.rental_date and
 ```
 1) Опетаторы **distinct** (удаление дубликатов) с операторами **over(partition by** (некий аналогк GROUP BY, на сколько я понял, используется для разделения строк по группам и разделам), показались очень ресурсоемкими, так же многочисленные and в операторе where не имеют смысла и добавление такого количества таблиц в оператор from не нужно, лучше использовать join. В итоге аналогичный результат был получен при выполнении следующего кода:
 
-```sql
-EXPLAIN ANALYZE                       
-select concat(c.last_name, ' ', c.first_name) as CST,sum(p.amount)
-FROM customer c
-JOIN payment p ON p.customer_id = c.customer_id 
-WHERE date(p.payment_date) = '2005-07-30'
-GROUP BY c.customer_id
-
--> Limit: 200 row(s)  (actual time=970..983 rows=200 loops=1)
-    -> Sort with duplicate removal: CST, `sum(p.amount)`  (actual time=970..975 rows=200 loops=1)
-        -> Table scan on <temporary>  (actual time=935..961 rows=391 loops=1)
-            -> Aggregate using temporary table  (actual time=935..935 rows=391 loops=1)
-                -> Nested loop inner join  (cost=5836 rows=16500) (actual time=3.18..918 rows=634 loops=1)
-                    -> Table scan on c  (cost=61.2 rows=599) (actual time=0.0872..13.3 rows=599 loops=1)
-                    -> Filter: (cast(p.payment_date as date) = '2005-07-30')  (cost=6.89 rows=27.5) (actual time=0.991..1.39 rows=1.06 loops=599)
-                        -> Index lookup on p using idx_fk_customer_id (customer_id=c.customer_id)  (cost=6.89 rows=27.5) (actual time=0.0775..0.684 rows=26.8 loops=599)
-```
-2) Поскольку тема была про индексы, добавил индексирование по дате: 
+2) Поскольку тема была про индексы, добавил индексирование по дате, так же отработал по замечаниям: 
 ```sql
 CREATE INDEX date_pay ON payment(payment_date);
 ```
-Это ускорило выполнение скрипта
+
 
 ```sql
--> Limit: 200 row(s)  (cost=4164 rows=193) (actual time=5.06..460 rows=200 loops=1)
-    -> Group aggregate: sum(p.amount)  (cost=4164 rows=193) (actual time=4.98..452 rows=200 loops=1)
-        -> Nested loop inner join  (cost=4144 rows=193) (actual time=2.64..440 rows=313 loops=1)
-            -> Index scan on c using PRIMARY  (cost=0.0228 rows=7) (actual time=0.0662..7.06 rows=284 loops=1)
-            -> Filter: (cast(p.payment_date as date) = '2005-07-30')  (cost=6.89 rows=27.5) (actual time=0.974..1.41 rows=1.1 loops=284)
-                -> Index lookup on p using idx_fk_customer_id (customer_id=c.customer_id)  (cost=6.89 rows=27.5) (actual time=0.0756..0.691 rows=27.1 loops=284)
+EXPLAIN ANALYZE      
+select concat(c.last_name, ' ', c.first_name) as CST,sum(p.amount)
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id 
+JOIN rental r ON r.rental_id = p.rental_id 
+JOIN inventory i ON i.inventory_id = r.inventory_id 
+WHERE p.payment_date >= '2005-07-30' and p.payment_date < DATE_ADD('2005-07-30', INTERVAL 1 DAY)
+GROUP BY c.customer_id
+
+
+-> Limit: 200 row(s)  (actual time=445..469 rows=200 loops=1)
+    -> Table scan on <temporary>  (actual time=445..459 rows=200 loops=1)
+        -> Aggregate using temporary table  (actual time=445..445 rows=391 loops=1)
+            -> Nested loop inner join  (cost=1396 rows=634) (actual time=0.625..427 rows=634 loops=1)
+                -> Nested loop inner join  (cost=1175 rows=634) (actual time=0.468..297 rows=634 loops=1)
+                    -> Nested loop inner join  (cost=507 rows=634) (actual time=0.31..174 rows=634 loops=1)
+                        -> Filter: (p.rental_id is not null)  (cost=286 rows=634) (actual time=0.145..50.3 rows=634 loops=1)
+                            -> Index range scan on p using date_pay over ('2005-07-30 00:00:00' <= payment_date < '2005-07-31 00:00:00'), with index condition: ((p.payment_date >= TIMESTAMP'2005-07-30 00:00:00') and (p.payment_date < <cache>(('2005-07-30' + interval 1 day))))  (cost=286 rows=634) (actual time=0.0687..19 rows=634 loops=1)
+                        -> Single-row index lookup on c using PRIMARY (customer_id=p.customer_id)  (cost=0.25 rows=1) (actual time=0.0555..0.0796 rows=1 loops=634)
+                    -> Single-row index lookup on r using PRIMARY (rental_id=p.rental_id)  (cost=0.952 rows=1) (actual time=0.0535..0.0765 rows=1 loops=634)
+                -> Single-row covering index lookup on i using PRIMARY (inventory_id=r.inventory_id)  (cost=0.25 rows=1) (actual time=0.0557..0.0796 rows=1 loops=634)
+
 ```
+Видно использование добавленного индекса
+
+![Alt text](img/02.jpg)
