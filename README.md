@@ -20,7 +20,8 @@
 
 
 ### Решение 1
-[text](img) ![text](img/01.jpg) [text](md-instruction.md) [text](README.md) [text](screen-instruction.md)
+
+![alt text](img/01.jpg)
 
 Логи Suricata отобразили подозрительные входящие сообщения, потенциально нежелательный трафик в разнообразных портах на отслеживаемом интерфейсе.
 
@@ -53,10 +54,11 @@
 *В качестве ответа пришлите события, которые попали в логи Suricata и Fail2Ban, прокомментируйте результат.*
 
 ### Решение 2
-[text](img) ![text](img/01.jpg) [text](md-instruction.md) [text](README.md) [text](screen-instruction.md)
+
+![alt text](<img/02 ftb.jpg>)
 
 В логи fail2ban попали попытки ввода ssh пароля и бан за превышение допустимого количества попыток.
 
-[text](img) ![text](img/01.jpg) [text](md-instruction.md) [text](README.md) [text](screen-instruction.md)
+![alt text](<img/2 sct.jpg>)
 
 Логи suricata показывают потенциальное ssh сканирование (на сколько я понял, hydra открывает сразу много ssh сессий для ускорения перебора)
