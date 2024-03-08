@@ -216,7 +216,7 @@ sudo docker exec -it 9f26474bceb7 pg_dump -U test-admin-user -d test_db > /tmp/b
 sudo docker-compose stop
 
 ```
-2) Вторая машина с пустой базой
+3) Вторая машина с пустой базой
 
 ```yml
   postgres2:
@@ -231,7 +231,7 @@ sudo docker-compose stop
      - /home/motorher/postgr/backup:/tmp
 ```
 
-3) восстановление базы данных
+4) восстановление базы данных
 ```sh
  sudo docker exec -i 5cbae20b2a1f psql -U test-admin-user -d test_db < /tmp/bak1.dump
 ```
