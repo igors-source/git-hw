@@ -22,6 +22,11 @@ Hey, Netology
 - Соберите и отправьте созданный образ в свой dockerhub-репозитории c tag 1.0.0 (ТОЛЬКО ЕСЛИ ЕСТЬ ДОСТУП). 
 - Предоставьте ответ в виде ссылки на https://hub.docker.com/<username_repo>/custom-nginx/general .
 
+
+## Решение 1
+
+https://hub.docker.com/r/igorssource/custom-nginx/tags
+
 ## Задача 2
 1. Запустите ваш образ custom-nginx:1.0.0 командой docker run в соответвии с требованиями:
 - имя контейнера "ФИО-custom-nginx-t2"
@@ -33,6 +38,18 @@ Hey, Netology
 
 В качестве ответа приложите скриншоты консоли, где видно все введенные команды и их вывод.
 
+## Решение 2
+
+1. Переименуйте контейнер в "custom-nginx-t2"
+
+![alt text](img/docker_image_rename.jpg)
+
+2. Выполните команду ```date +"%d-%m-%Y %T.%N %Z" ; sleep 0.150 ; docker ps ; ss -tlpn | grep 127.0.0.1:8080  ; docker logs custom-nginx-t2 -n1 ; docker exec -it custom-nginx-t2 base64 /usr/share/nginx/html/index.html```
+Убедитесь с помощью curl или веб браузера, что индекс-страница доступна.
+
+![alt text](<img/docker exec command.jpg>)
+
+![alt text](<img/docker exec command 2.jpg>)
 
 ## Задача 3
 1. Воспользуйтесь docker help или google, чтобы узнать как подключиться к стандартному потоку ввода/вывода/ошибок контейнера "custom-nginx-t2".
@@ -50,6 +67,26 @@ Hey, Netology
 
 В качестве ответа приложите скриншоты консоли, где видно все введенные команды и их вывод.
 
+## Решение 3
+
+1.
+
+![alt text](<img/docker attach ctrl c.jpg>)
+
+Контейнер остановился потому, что комбинация 'CTRL + c' отправила сигнал SIGKILL в контейнер, мы присоединились к контейнеру как к процессу, поэтому он корректно принял сигнал завершения работы.
+
+4-10.
+
+![alt text](<img/docker exec command 2.jpg>)
+
+![alt text](<img/docker command new.jpg>)
+
+Nginx внутри контейнера пеехал на порт 81, а докер пробрасывает порт 8080 снаружи на порт 81 внутри, на порту 80 теперь ничего нет.
+
+12.
+
+![alt text](<img/docker container delete.jpg>)
+
 ## Задача 4
 
 
@@ -61,6 +98,16 @@ Hey, Netology
 
 
 В качестве ответа приложите скриншоты консоли, где видно все введенные команды и их вывод.
+
+## Решение 4
+
+```sh
+sudo docker run -it -d -v $(pwd):/data --name centos centos:latest
+
+sudo docker run -it -d -v $(pwd):/data --name debian debian:latest
+```
+
+![alt text](<img/docker data file.jpg>)
 
 
 ## Задача 5
@@ -112,54 +159,6 @@ services:
 
 В качестве ответа приложите скриншоты консоли, где видно все введенные команды и их вывод, файл compose.yaml , скриншот portainer c задеплоенным компоузом.
 
-
-## Решение 1
-
-https://hub.docker.com/r/igorssource/custom-nginx/tags
-
-## Решение 2
-
-1. Переименуйте контейнер в "custom-nginx-t2"
-
-![alt text](img/docker_image_rename.jpg)
-
-2. Выполните команду ```date +"%d-%m-%Y %T.%N %Z" ; sleep 0.150 ; docker ps ; ss -tlpn | grep 127.0.0.1:8080  ; docker logs custom-nginx-t2 -n1 ; docker exec -it custom-nginx-t2 base64 /usr/share/nginx/html/index.html```
-Убедитесь с помощью curl или веб браузера, что индекс-страница доступна.
-
-![alt text](<img/docker exec command.jpg>)
-
-![alt text](<img/docker exec command 2.jpg>)
-
-## Решение 3
-
-1.
-
-![alt text](<img/docker attach ctrl c.jpg>)
-
-Контейнер остановился потому, что комбинация 'CTRL + c' отправила сигнал SIGKILL в контейнер, мы присоединились к контейнеру как к процессу, поэтому он корректно принял сигнал завершения работы.
-
-4-10.
-
-![alt text](<img/docker exec command 2.jpg>)
-
-![alt text](<img/docker command new.jpg>)
-
-Nginx внутри контейнера пеехал на порт 81, а докер пробрасывает порт 8080 снаружи на порт 81 внутри, на порту 80 теперь ничего нет.
-
-12.
-
-![alt text](<img/docker container delete.jpg>)
-
-
-## Решение 4
-
-```sh
-sudo docker run -it -d -v $(pwd):/data --name centos centos:latest
-
-sudo docker run -it -d -v $(pwd):/data --name debian debian:latest
-```
-
-![alt text](<img/docker data file.jpg>)
 
 ## Задача 5
 
