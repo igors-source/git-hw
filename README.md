@@ -39,12 +39,15 @@ https://hub.docker.com/r/igorssource/custom-nginx/tags
 В качестве ответа приложите скриншоты консоли, где видно все введенные команды и их вывод.
 
 ## Решение 2
-
-1. Переименуйте контейнер в "custom-nginx-t2"
+1.
+```bash
+sudo docker run -d -p 127.0.0.1:8080:80 --name 'shadriniv-custom-nginx-t2' igorssource/custom-nginx:1.0.0
+```
+2. Переименуйте контейнер в "custom-nginx-t2"
 
 ![alt text](img/docker_image_rename.jpg)
 
-2. Выполните команду ```date +"%d-%m-%Y %T.%N %Z" ; sleep 0.150 ; docker ps ; ss -tlpn | grep 127.0.0.1:8080  ; docker logs custom-nginx-t2 -n1 ; docker exec -it custom-nginx-t2 base64 /usr/share/nginx/html/index.html```
+3-4. Выполните команду ```date +"%d-%m-%Y %T.%N %Z" ; sleep 0.150 ; docker ps ; ss -tlpn | grep 127.0.0.1:8080  ; docker logs custom-nginx-t2 -n1 ; docker exec -it custom-nginx-t2 base64 /usr/share/nginx/html/index.html```
 Убедитесь с помощью curl или веб браузера, что индекс-страница доступна.
 
 ![alt text](<img/docker exec command.jpg>)
