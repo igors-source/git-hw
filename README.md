@@ -52,7 +52,7 @@ sudo docker run -d -p 127.0.0.1:8080:80 --name 'shadriniv-custom-nginx-t2' igors
 
 ![alt text](<img/docker exec command.jpg>)
 
-![alt text](<img/docker exec command 2.jpg>)
+![alt text](img/curl.jpg)
 
 ## Задача 3
 1. Воспользуйтесь docker help или google, чтобы узнать как подключиться к стандартному потоку ввода/вывода/ошибок контейнера "custom-nginx-t2".
