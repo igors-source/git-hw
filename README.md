@@ -90,7 +90,7 @@ services:
 
 Обращение к базе данных:
 
-![alt text](<img/docker practice 2.jpg>)
+![img/docker practice 3.jpg](<img/docker practice 3.jpg>)
 
 
 ## Задача 4
