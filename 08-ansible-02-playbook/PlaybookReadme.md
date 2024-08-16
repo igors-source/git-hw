@@ -1,3 +1,5 @@
+
+
 # VECTOR CLICKHOUSE ANSIBLE PLAYBOOK
 
 Плейбук для установки Clickhouse, Vector на операционных системах типа Linux на базе rpm пакетов
@@ -36,7 +38,7 @@ vector_architecture: - системная архитектура пакета ve
 ``` ansible-playbook -i ./inventory/prod.yml site.yml -kK```bash
 Ключи -kK используются для интерактивного запроса ввода пароля
 
-# Tast Tags
+# Tasк Tags
 
 clickhouse - установка clickhouse
 

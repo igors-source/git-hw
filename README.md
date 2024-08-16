@@ -24,10 +24,10 @@ ansible-lint поругался на заглавные буквы в булев
 
 Результат выполнения playbook 
 
-Техническое описание:
 
-[text](08-ansible-02-playbook/PlaybookReadme.md)
 
-Исходный код:
+[Техническое описание:](08-ansible-02-playbook/PlaybookReadme.md)
 
-[text](08-ansible-02-playbook)
+
+
+[Исходный код:](08-ansible-02-playbook)
