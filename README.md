@@ -20,7 +20,7 @@
 
 ansible-lint поругался на заглавные буквы в булевых переменных, хотя работает и так и так
 
-![alt text](img/errors.jpg)
+![img/diff.jpg](img/diff.jpg)
 
 Результат выполнения playbook 
 
