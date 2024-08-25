@@ -1,0 +1,126 @@
+---
+- name: Install Clickhouse
+  hosts: clickhouse
+  tasks:
+    - block:
+        - name: Get clickhouse distrib
+          ansible.builtin.get_url:
+            url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.x86_64.rpm"
+            dest: "/tmp/{{ item }}-{{ clickhouse_version }}.rpm"
+            mode: '0644'
+          with_items: "{{ clickhouse_packages }}"
+      rescue:
+        - name: Get clickhouse distrib
+          ansible.builtin.get_url:
+            url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
+            dest: "/tmp/clickhouse-common-static-{{ clickhouse_version }}.rpm"
+            mode: '0644'
+    - name: Install clickhouse packages
+      become: true
+      ansible.builtin.yum:
+        disable_gpg_check: True
+        name:
+          - /tmp/clickhouse-common-static-{{ clickhouse_version }}.rpm
+          - /tmp/clickhouse-client-{{ clickhouse_version }}.rpm
+          - /tmp/clickhouse-server-{{ clickhouse_version }}.rpm
+      notify: Start clickhouse service
+      ignore_errors: "{{ ansible_check_mode }}"
+#    - name: Firewall open port
+#      become: true
+#      ansible.builtin.firewalld:
+#        port: "{{ item }}"
+#        permanent: true
+#        state: enabled
+#      loop:
+#        - 9000/tcp
+#        - 8123/tcp
+  handlers:
+    - name: Start clickhouse service
+      become: true
+      ansible.builtin.service:
+        name: clickhouse-server
+        state: restarted
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+    - name: Pause 20 sec
+      ansible.builtin.pause:
+        seconds: 20
+    - name: Create database
+      ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
+      register: create_db
+      failed_when: create_db.rc != 0 and create_db.rc !=82
+      changed_when: create_db.rc == 0
+  tags: clickhouse
+
+- name: Install Vector
+  hosts: vector-01
+  tasks:
+    - name: Get Vector distrib
+      ansible.builtin.get_url:
+        url: "https://packages.timber.io/vector/{{ vector_version }}/vector-{{ vector_version }}-1.{{ vector_architecture }}.rpm"
+        dest: "/tmp/vector-{{ vector_version }}-1.{{ vector_architecture }}.rpm"
+        mode: '0644'
+    - name: Install Vector
+      become: True
+      ansible.builtin.yum:
+        disable_gpg_check: True
+        name:
+          - /tmp/vector-{{ vector_version }}-1.{{ vector_architecture }}.rpm
+      notify: Start Vector
+  handlers:
+    - name: Start Vector
+      become: true
+      ansible.builtin.service:
+        name: vector
+        state: restarted
+  tags: vector
+
+- name: Install Lighthouse
+  hosts: lighthouse
+  pre_tasks:
+    - name: Dependencies
+      become: true
+      ansible.builtin.yum:
+        name:
+          - git
+          - nginx
+        state: present
+  tasks:
+    - name: Recursively remove directory
+      ansible.builtin.file:
+        path: /var/www/lighthouse
+        state: absent
+    - name: Create Lighthouse directory
+      become: true
+#      become_user: nginx
+      ansible.builtin.file:
+        path: /var/www/lighthouse
+        state: directory
+        recurse: yes
+        mode: '0755'
+        owner: nginx
+        group: nginx
+
+    - name: Get Source from git
+      become: true
+      become_user: nginx
+      ansible.builtin.git:
+        repo: "{{ lighthouse_repo }}"
+        version: master
+        force: yes
+        dest: /var/www/lighthouse
+    - name: Lighthouse | Create lighthouse config
+      become: true
+      ansible.builtin.template:
+        src: templates/lighthouse.conf.j2
+        dest: /etc/nginx/conf.d/default.conf
+        mode: '0644'
+      notify: restart-nginx
+  handlers:
+    - name: restart-nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+      become: true
+      become_method: sudo
+  tags: Lighthouse
