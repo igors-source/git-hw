@@ -44,7 +44,6 @@
 
 ![alt text](img/02.png)
 
-![alt text](img/03.png)
 
 [workflow bug](img/netology_bug.xml)
 
