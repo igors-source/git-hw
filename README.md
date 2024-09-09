@@ -18,7 +18,7 @@
 
 ### Решение
 
-![alt text](img/scube.png)
+![maven-metadada.xml](img/scube.png)
 
 ## Знакомство с Nexus
 
@@ -62,4 +62,4 @@
 
 ![alt text](img/mvn.png)
 
-[text](xml/pom.xml)
+[pom.xml](xml/pom.xml)
