@@ -40,7 +40,7 @@
 
 ### Решение
 
-[text](xml/maven-metadada.xml)
+[maven-metadada.xml](xml/maven-metadada.xml)
 
 ### Подготовка к выполнению
 
