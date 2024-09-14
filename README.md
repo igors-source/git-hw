@@ -40,6 +40,9 @@
 ![alt text](<img/1st build.jpg>)
 
 4. Поменяйте условия сборки: если сборка по ветке `master`, то должен происходит `mvn clean deploy`, иначе `mvn clean test`.
+
+![alt text](<img/maven build.jpg>)
+
 5. Для deploy будет необходимо загрузить [settings.xml](./teamcity/settings.xml) в набор конфигураций maven у teamcity, предварительно записав туда креды для подключения к nexus.
 
 ![alt text](img/mavset.jpg)
