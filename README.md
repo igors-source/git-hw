@@ -34,19 +34,19 @@
 
 ## Решение 2
 
-1. ```100 -avg(irate(node_cpu_seconds_total{job="nodeexporter", mode="idle"}[5m]))*100```sql
+1. ```100 -avg(irate(node_cpu_seconds_total{job="nodeexporter", mode="idle"}[5m]))*100```
 
 ![alt text](img/02.jpg)
 
-2. ```node_load1 node_load5 node_load15```sql
+2. ```node_load1 node_load5 node_load15```
 
 ![alt text](img/03.jpg)
 
-3. ```100 - 100 * (1 - ((avg_over_time(node_memory_MemFree_bytes[10m]) + avg_over_time(node_memory_Cached_bytes[10m]) + avg_over_time(node_memory_Buffers_bytes[10m])) / avg_over_time(node_memory_MemTotal_bytes[10m])))```sql
+3. ```100 - 100 * (1 - ((avg_over_time(node_memory_MemFree_bytes[10m]) + avg_over_time(node_memory_Cached_bytes[10m]) + avg_over_time(node_memory_Buffers_bytes[10m])) / avg_over_time(node_memory_MemTotal_bytes[10m])))```
 
 ![alt text](img/04.jpg)
 
-4. ```100 - ((node_filesystem_avail_bytes{mountpoint="/",fstype!="rootfs"} * 100) / node_filesystem_size_bytes{mountpoint="/",fstype!="rootfs"})```sql
+4. ```100 - ((node_filesystem_avail_bytes{mountpoint="/",fstype!="rootfs"} * 100) / node_filesystem_size_bytes{mountpoint="/",fstype!="rootfs"})```
 
 ![alt text](img/05.jpg)
 
