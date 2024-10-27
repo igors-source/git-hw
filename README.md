@@ -53,15 +53,15 @@ spec:
 ```
 ```yaml
 apiVersion: v1
-kind: Service
+kind: Pod
 metadata:
-  name: netology-svc
-spec:
-  ports:
-    - protocol: TCP
-      port: 8080
-  selector:
+  name: netology-web
+  labels:
     app: netology-web
+spec:
+  containers:
+  - name: netology-web
+    image: gcr.io/kubernetes-e2e-test-images/echoserver:2.2
 ```
 ![port forward](img/pfsvc.jpg)
 
