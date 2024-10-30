@@ -36,7 +36,7 @@ spec:
         ports:
         - containerPort: 80
       - name: multitool
-        image: praqma/network-multitool
+        image: wbitt/network-multitool
         ports:
         - containerPort: 8080
         env:
@@ -45,7 +45,7 @@ spec:
 ```
 Количество подов после масштабирования 
 
-![alt text](deployment.jpg)
+![img\deployment.jpg](img/deployment.jpg)
 
 Service, который обеспечит доступ до реплик приложений из п.1.
 
@@ -82,7 +82,7 @@ spec:
 4. Продемонстрировать состояние пода до и после запуска сервиса.
 
 ### Решение 2
-Deployment приложения nginx иб старт контейнера только после того, как будет запущен сервис этого приложения и сервис
+Deployment приложения nginx и старт контейнера только после того, как будет запущен сервис этого приложения и сервис
 ```yml
 apiVersion: v1
 kind: Deployment
