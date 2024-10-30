@@ -14,7 +14,7 @@
 ### Решение 1
 Deployment приложения, состоящего из двух контейнеров nginx и multitool. Проблема решена переездом 80го порта контейнера multitool на 8080 через переменную окружения контейнера.
 ```yml
-apiVersion: apps/v1
+apiVersion: v1
 kind: Deployment
 metadata:
   name: nginx-deployment
