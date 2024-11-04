@@ -1,27 +1,27 @@
-# Домашнее задание к занятию «Запуск приложений в K8S» "Шадрин Игорь"
+# Домашнее задание к занятию «Сетевое взаимодействие в K8S. Часть 1» "Шадрин Игорь"
 
 
+### Задание 1. Создать Deployment и обеспечить доступ к контейнерам приложения по разным портам из другого Pod внутри кластера
 
+1. Создать Deployment приложения, состоящего из двух контейнеров (nginx и multitool), с количеством реплик 3 шт.
+2. Создать Service, который обеспечит доступ внутри кластера до контейнеров приложения из п.1 по порту 9001 — nginx 80, по 9002 — multitool 8080.
+3. Создать отдельный Pod с приложением multitool и убедиться с помощью `curl`, что из пода есть доступ до приложения из п.1 по разным портам в разные контейнеры.
+4. Продемонстрировать доступ с помощью `curl` по доменному имени сервиса.
+5. Предоставить манифесты Deployment и Service в решении, а также скриншоты или вывод команды п.4.
 
-### Задание 1. Создать Deployment и обеспечить доступ к репликам приложения из другого Pod
-
-1. Создать Deployment приложения, состоящего из двух контейнеров — nginx и multitool. Решить возникшую ошибку.
-2. После запуска увеличить количество реплик работающего приложения до 2.
-3. Продемонстрировать количество подов до и после масштабирования.
-4. Создать Service, который обеспечит доступ до реплик приложений из п.1.
-5. Создать отдельный Pod с приложением multitool и убедиться с помощью `curl`, что из пода есть доступ до приложений из п.1.
+------
 
 ### Решение 1
-Deployment приложения, состоящего из двух контейнеров nginx и multitool. Проблема решена переездом 80го порта контейнера multitool на 8080 через переменную окружения контейнера.
+
 ```yml
-apiVersion: v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
   labels:
     app: nginx-multitool
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: nginx-multitool
@@ -36,20 +36,15 @@ spec:
         ports:
         - containerPort: 80
       - name: multitool
-        image: wbitt/network-multitool
+        image: praqma/network-multitool
         ports:
         - containerPort: 8080
         env:
         - name: HTTP_PORT
           value: "8080"
-```
-Количество подов после масштабирования 
 
-![img\deployment.jpg](img/deployment.jpg)
+---
 
-Service, который обеспечит доступ до реплик приложений из п.1.
-
-```yml
 apiVersion: v1
 kind: Service
 metadata:
@@ -60,71 +55,57 @@ spec:
   ports:
     - name: nginx
       protocol: TCP
-      port: 80
+      port: 9001
       targetPort: 80
     - name: multitool
       protocol: TCP
-      port: 8080
+      port: 9002
       targetPort: 8080
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multitool
+spec:
+  containers:
+  - name: multitool
+    image: wbitt/network-multitool
 ```
 
-`curl`до приложений из п.1.
+![alt text](img/curl1.jpg)
 
-![alt text](img/avalibility.jpg)
+![alt text](img/crl2.jpg)
 
-![alt text](img/avalibility2.jpg)
 
-### Задание 2. Создать Deployment и обеспечить старт основного контейнера при выполнении условий
+### Задание 2. Создать Service и обеспечить доступ к приложениям снаружи кластера
 
-1. Создать Deployment приложения nginx и обеспечить старт контейнера только после того, как будет запущен сервис этого приложения.
-2. Убедиться, что nginx не стартует. В качестве Init-контейнера взять busybox.
-3. Создать и запустить Service. Убедиться, что Init запустился.
-4. Продемонстрировать состояние пода до и после запуска сервиса.
+1. Создать отдельный Service приложения из Задания 1 с возможностью доступа снаружи кластера к nginx, используя тип NodePort.
+2. Продемонстрировать доступ с помощью браузера или `curl` с локального компьютера.
+3. Предоставить манифест и Service в решении, а также скриншоты или вывод команды п.2.
 
 ### Решение 2
-Deployment приложения nginx и старт контейнера только после того, как будет запущен сервис этого приложения и сервис
-```yml
-apiVersion: v1
-kind: Deployment
-metadata:
-  name: deployment-02
-  labels:
-    app: nginx-02
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nginx-02
-  template:
-    metadata:
-      labels:
-        app: nginx-02
-    spec:
-      initContainers:
-      - name: init
-        image: busybox:latest
-        command: ['sh', '-c', 'until nslookup nginx-svc.default.svc.cluster.local; do sleep 1; done;']
-      containers:
-      - name: nginx
-        image: nginx:latest
-        ports:
-        - containerPort: 80
-```
+
 ```yml
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-svc
+  name: nginx-multitool-nodeport
+  labels:
+    app: nport
 spec:
   ports:
-    - name: web
-      port: 80
-      protocol: TCP
-      targetPort: 80
+  - name: nginx
+    port: 80
+    nodePort: 30080
+    protocol: TCP
+  - name: multitool
+    port: 8080
+    nodePort: 30081
+    protocol: TCP
   selector:
-    app: nginx-02
+    app: nginx-multitool
+  type: NodePort
 ```
 
-Cостояние пода до и после запуска сервиса.
-
-![alt text](img/busybox.jpg)
+![alt text](img/nport.jpg)
