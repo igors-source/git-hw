@@ -1,128 +1,99 @@
-# Домашнее задание к занятию «Сетевое взаимодействие в K8S. Часть 2» "Шадрин Игорь"
+# Домашнее задание к занятию «Хранение в K8s. Часть 1» "Шадрин Игорь"
 
+### Цель задания
 
-### Задание 1. Создать Deployment приложений backend и frontend
+В тестовой среде Kubernetes нужно обеспечить обмен файлами между контейнерам пода и доступ к логам ноды.
 
-1. Создать Deployment приложения _frontend_ из образа nginx с количеством реплик 3 шт.
-2. Создать Deployment приложения _backend_ из образа multitool. 
-3. Добавить Service, которые обеспечат доступ к обоим приложениям внутри кластера. 
-4. Продемонстрировать, что приложения видят друг друга с помощью Service.
-5. Предоставить манифесты Deployment и Service в решении, а также скриншоты или вывод команды п.4.
+### Задание 1 
+
+**Что нужно сделать**
+
+Создать Deployment приложения, состоящего из двух контейнеров и обменивающихся данными.
+
+1. Создать Deployment приложения, состоящего из контейнеров busybox и multitool.
+2. Сделать так, чтобы busybox писал каждые пять секунд в некий файл в общей директории.
+3. Обеспечить возможность чтения файла контейнером multitool.
+4. Продемонстрировать, что multitool может читать файл, который периодоически обновляется.
+5. Предоставить манифесты Deployment в решении, а также скриншоты или вывод команды из п. 4.
 
 ### Решение 1
+
 ```yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: deployment
   labels:
-    app: frontend-nginx
+    app: nginx-busybox
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: frontend-nginx
+      app: nginx-busybox
   template:
     metadata:
       labels:
-        app: frontend-nginx
+        app: nginx-busybox
     spec:
       containers:
-      - name: nginx
-        image: nginx:latest
-        ports:
-        - containerPort: 80
+      - name: multitool
+        image: wbitt/network-multitool:latest
+        volumeMounts:
+        - name: homework
+          mountPath: /tmp
 
----
+      - name: busybox
+        image: busybox:1.28
+        command: [ 'sh', '-c', 'while true; do echo "volume_homework_1" >> /tmp/hw; sleep 2;done' ]
+        volumeMounts:
+        - name: homework
+          mountPath: /tmp
+      volumes:
+        - name: homework
+          emptyDir: {}
+```
+
+![alt text](img/01.jpg)
+
+### Задание 2
+
+
+**Что нужно сделать**
+
+Создать DaemonSet приложения, которое может прочитать логи ноды.
+
+1. Создать DaemonSet приложения, состоящего из multitool.
+2. Обеспечить возможность чтения файла `/var/log/syslog` кластера MicroK8S.
+3. Продемонстрировать возможность чтения файла изнутри пода.
+4. Предоставить манифесты Deployment, а также скриншоты или вывод команды из п. 2.
+
+### Решение 2
+```yml
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
-  name: backend
+  name: daemonset-multitool
   labels:
-    app: backend-multitool
+    app: multitool
 spec:
-  replicas: 3
   selector:
     matchLabels:
-      app: backend-multitool
+      app: multitool
   template:
     metadata:
       labels:
-        app: backend-multitool
+        app: multitool
     spec:
       containers:
       - name: multitool
         image: wbitt/network-multitool
-        ports:
-        - containerPort: 80
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: s-front
-spec:
-  ports:
-    - name: nginx
-      protocol: TCP
-      port: 80
-      targetPort: 80
-  selector:
-    app: frontend-nginx
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: s-back
-spec:
-  ports:
-    - name: multitool
-      protocol: TCP
-      port: 80
-      targetPort: 80
-  selector:
-    app: backend-multitool
-```
-![alt text](img/svc1.jpg)
-
-![alt text](img/svc2.jpg)
-
-### Задание 2. Создать Ingress и обеспечить доступ к приложениям снаружи кластера
-
-1. Включить Ingress-controller в MicroK8S.
-2. Создать Ingress, обеспечивающий доступ снаружи по IP-адресу кластера MicroK8S так, чтобы при запросе только по адресу открывался _frontend_ а при добавлении /api - _backend_.
-3. Продемонстрировать доступ с помощью браузера или `curl` с локального компьютера.
-4. Предоставить манифесты и скриншоты или вывод команды п.2.
-
-### Решение 2
-```yml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: http-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  ingressClassName: "nginx"
-  rules:
-  - host: super.host
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: s-front
-            port:
-              number: 80
-      - path: /api
-        pathType: Exact
-        backend:
-          service:
-            name: s-back
-            port:
-              number: 80
+        volumeMounts:
+        - name: homework2
+          mountPath: /tmp
+      volumes:
+        - name: homework2
+          hostPath:
+            path: /var/log
 ```
 
-![alt text](img/ingress.jpg)
+![alt text](img/02.jpg)
