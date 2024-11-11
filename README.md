@@ -1,22 +1,22 @@
-# Домашнее задание к занятию «Хранение в K8s. Часть 1» "Шадрин Игорь"
+# Домашнее задание к занятию «Хранение в K8s. Часть 2» "Шадрин Игорь"
 
-### Цель задания
 
-В тестовой среде Kubernetes нужно обеспечить обмен файлами между контейнерам пода и доступ к логам ноды.
-
-### Задание 1 
+### Задание 1
 
 **Что нужно сделать**
 
-Создать Deployment приложения, состоящего из двух контейнеров и обменивающихся данными.
+Создать Deployment приложения, использующего локальный PV, созданный вручную.
 
 1. Создать Deployment приложения, состоящего из контейнеров busybox и multitool.
-2. Сделать так, чтобы busybox писал каждые пять секунд в некий файл в общей директории.
-3. Обеспечить возможность чтения файла контейнером multitool.
-4. Продемонстрировать, что multitool может читать файл, который периодоически обновляется.
-5. Предоставить манифесты Deployment в решении, а также скриншоты или вывод команды из п. 4.
+2. Создать PV и PVC для подключения папки на локальной ноде, которая будет использована в поде.
+3. Продемонстрировать, что multitool может читать файл, в который busybox пишет каждые пять секунд в общей директории. 
+4. Удалить Deployment и PVC. Продемонстрировать, что после этого произошло с PV. Пояснить, почему.
+5. Продемонстрировать, что файл сохранился на локальном диске ноды. Удалить PV.  Продемонстрировать что произошло с файлом после удаления PV. Пояснить, почему.
+5. Предоставить манифесты, а также скриншоты или вывод необходимых команд.
 
 ### Решение 1
+
+Deployment
 
 ```yml
 apiVersion: apps/v1
@@ -24,16 +24,16 @@ kind: Deployment
 metadata:
   name: deployment
   labels:
-    app: nginx-busybox
+    app: multitool-busybox
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nginx-busybox
+      app: multitool-busybox
   template:
     metadata:
       labels:
-        app: nginx-busybox
+        app: multitool-busybox
     spec:
       containers:
       - name: multitool
@@ -44,38 +44,90 @@ spec:
 
       - name: busybox
         image: busybox:1.28
-        command: [ 'sh', '-c', 'while true; do echo "volume_homework_1" >> /tmp/hw; sleep 2;done' ]
+        command: [ 'sh', '-c', 'while true; do echo  $(date +"%H:%M:%S") volume_homework_2 >> /tmp/hw; sleep 5;done' ]
         volumeMounts:
         - name: homework
           mountPath: /tmp
       volumes:
-        - name: homework
-          emptyDir: {}
+      - name: homework
+        persistentVolumeClaim:
+          claimName: pvc-hw
 ```
 
-![alt text](img/01.jpg)
+PVC
+
+```yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-hw
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+PV
+```yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-hw
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  hostPath:
+    path: "/mnt/kuber"
+```
+multitool может читать файл, в который busybox пишет каждые пять секунд в общей директории
+
+![alt text](img/v1.jpg)
+
+После удаления Deployment и PVC, PV поменял STATUS на Released
+
+![alt text](img/pv.jpg)
+
+Файл сохранился на локальном диске ноды
+
+![alt text](<img/before del pv.jpg>)
+
+После удаления PV данные сохранились на ноде, так как стояла опция
+persistentVolumeReclaimPolicy: Retain
+Для очистки данных можно установить опцию
+ersistentVolumeReclaimPolicy:Recycle - pv будет очищен.
+------
 
 ### Задание 2
 
-
 **Что нужно сделать**
 
-Создать DaemonSet приложения, которое может прочитать логи ноды.
+Создать Deployment приложения, которое может хранить файлы на NFS с динамическим созданием PV.
 
-1. Создать DaemonSet приложения, состоящего из multitool.
-2. Обеспечить возможность чтения файла `/var/log/syslog` кластера MicroK8S.
-3. Продемонстрировать возможность чтения файла изнутри пода.
-4. Предоставить манифесты Deployment, а также скриншоты или вывод команды из п. 2.
+1. Включить и настроить NFS-сервер на MicroK8S.
+2. Создать Deployment приложения состоящего из multitool, и подключить к нему PV, созданный автоматически на сервере NFS.
+3. Продемонстрировать возможность чтения и записи файла изнутри пода. 
+4. Предоставить манифесты, а также скриншоты или вывод необходимых команд.
 
 ### Решение 2
+
+Deployment
+
 ```yml
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
-  name: daemonset-multitool
+  name: deployment
   labels:
     app: multitool
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: multitool
@@ -86,14 +138,36 @@ spec:
     spec:
       containers:
       - name: multitool
-        image: wbitt/network-multitool
+        image: wbitt/network-multitool:latest
         volumeMounts:
-        - name: homework2
+        - name: homework
           mountPath: /tmp
       volumes:
-        - name: homework2
-          hostPath:
-            path: /var/log
+      - name: homework
+        persistentVolumeClaim:
+          claimName: pvc-hw
 ```
 
-![alt text](img/02.jpg)
+PVC
+
+```yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-hw
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "microk8s-hostpath"
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+ NFS-сервер на MicroK8S
+
+ ![alt text](<img/v2 enable hoshpath.jpg>)
+
+Чтение и запись файла изнутри пода
+
+![alt text](<img/v2 read.jpg>)
