@@ -99,9 +99,10 @@ multitool может читать файл, в который busybox пишет
 ![alt text](<img/before del pv.jpg>)
 
 После удаления PV данные сохранились на ноде, так как стояла опция
-persistentVolumeReclaimPolicy: Retain
+```persistentVolumeReclaimPolicy: Retain```
 Для очистки данных можно установить опцию
-ersistentVolumeReclaimPolicy:Recycle - pv будет очищен.
+```persistentVolumeReclaimPolicy:Recycle``` - pv будет очищен.
+
 ------
 
 ### Задание 2
