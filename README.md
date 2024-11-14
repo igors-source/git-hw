@@ -11,6 +11,10 @@
 
 ### Решение 1
 
+<details>
+
+<summary> <h6>ConfigMap, Service, Volume</h6></summary>
+
 ```yml
 apiVersion: apps/v1
 kind: Deployment
@@ -87,6 +91,10 @@ spec:
   type: NodePort
 
 ```
+
+</details>
+
+
 Запуск пода
 
 ![alt text](<img/pod start.jpg>)
@@ -106,20 +114,10 @@ spec:
 
 ### Решение 2
 
-Генерация сертификатов
 
-```shell
-penssl req -x509 -days 300 -nodes -newkey rsa:2048 -keyout ./hw.key -out hw.crt
-```
-Кодирование в base64
-
-```shell
-cat ./hw.key | base64
-cat ./hw.crt | base64
-```
 <details>
 
-<summary> ConfigMap, Service, Volume, Secret</summary>
+<summary> <h6>ConfigMap, Service, Volume, Secret</h6></summary>
 
 ```yml
 apiVersion: apps/v1
@@ -241,6 +239,18 @@ spec:
 ```
 
 </details>
+
+Генерация сертификатов
+
+```shell
+penssl req -x509 -days 300 -nodes -newkey rsa:2048 -keyout ./hw.key -out hw.crt
+```
+Кодирование в base64
+
+```shell
+cat ./hw.key | base64
+cat ./hw.crt | base64
+```
 
 Браузер ругается на самоподписаный сертификат
 
