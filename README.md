@@ -13,7 +13,7 @@
 
 <details>
 
-<summary> <h6>ConfigMap, Service, Volume</h6></summary>
+<summary> <h5>ConfigMap, Service, Volume</h5></summary>
 
 ```yml
 apiVersion: apps/v1
@@ -117,7 +117,7 @@ spec:
 
 <details>
 
-<summary> <h6>ConfigMap, Service, Volume, Secret</h6></summary>
+<summary> <h5>ConfigMap, Service, Volume, Secret</h5></summary>
 
 ```yml
 apiVersion: apps/v1
