@@ -1,71 +1,132 @@
-# Домашнее задание к занятию "`"Git"`" - `Шадрин Игорь`
+# Домашнее задание к занятию «Управление доступом»
 
+### Задание 1. Создайте конфигурацию для подключения пользователя
 
-### Задание 1
+1. Создайте и подпишите SSL-сертификат для подключения к кластеру.
+2. Настройте конфигурационный файл kubectl для подключения.
+3. Создайте роли и все необходимые настройки для пользователя.
+4. Предусмотрите права пользователя. Пользователь может просматривать логи подов и их конфигурацию (`kubectl logs pod <pod_id>`, `kubectl describe pod <pod_id>`).
+5. Предоставьте манифесты и скриншоты и/или вывод необходимых команд.
 
-1.   Зарегистрируйте аккаунт на GitHub.
-2.    Создайте новый отдельный публичный репозиторий. Обязательно поставьте галочку в поле «Initialize this repository with a README».
-3.    Склонируйте репозиторий, используя https протокол git clone ....
-4.    Перейдите в каталог с клоном репозитория.
-5.    Произведите первоначальную настройку Git, указав своё настоящее имя и email: git config --global user.name и git config --global user.email johndoe@example.com.
-6.    Выполните команду git status и запомните результат.
-7.    Отредактируйте файл README.md любым удобным способом, переведя файл в состояние Modified.
-8.    Ещё раз выполните git status и продолжайте проверять вывод этой команды после каждого следующего шага.
-9.    Посмотрите изменения в файле README.md, выполнив команды git diff и git diff --staged.
-10.    Переведите файл в состояние staged или, как говорят, добавьте файл в коммит, командой git add README.md.
-11.    Ещё раз выполните команды git diff и git diff --staged.
-12.    Теперь можно сделать коммит git commit -m 'First commit'.
-13.    Сделайте git push origin master.
+------
 
-`В качестве ответа добавьте ссылку на этот коммит в ваш md-файл с решением.`
 ### Решение 1
-https://github.com/igors-source/githw/commit/80aa634940369338ec12264a01338b6a687c800d
 
-### Задание 2
+Включение rbac в microk8s 
 
- 1.   Создайте файл .gitignore (обратите внимание на точку в начале файла) и проверьте его статус сразу после создания.
- 2.   Добавьте файл .gitignore в следующий коммит git add....
- 3.   Напишите правила в этом файле, чтобы игнорировать любые файлы .pyc, а также все файлы в директории cache.
- 4.   Сделайте коммит и пуш.
+```shell
+microk8s enable rbac
+```
 
-`В качестве ответа добавьте ссылку на этот коммит в ваш md-файл с решением.`
-### Решение 2
-https://github.com/igors-source/githw/commit/70e91822da7a67d8e735fc0d3630ee0c7ce46b89
+Генерируем ключ
+
+```shell
+openssl genrsa -out netuser.key 2048
+```
+Генерируем запрос на сертификат
+
+```shell
+openssl req -new -key netuser.key -out netuser.csr -subj "/CN=netuser/O=control"
+```
+Подписываем сертификат корневым сертификатом microk8s
+
+```shell
+openssl x509 -req -in netuser.csr -CA /var/snap/microk8s/current/certs/ca.crt -CAkey /var/snap/microk8s/current/certs/ca.key -CAcreateserial -out netuser.crt -days 300
+```
+
+Добавление нового пользователя
+
+```shell
+kubectl config set-credentials netuser --client-certificate=netuser.crt --client-key=netuser.key
+```
+
+Создание нового контекста
+
+```shell
+kubectl config set-context netuser-context --cluster=microk8s-cluster --user=netuser
+```
+
+Создание нового namespace
+
+```shell
+kubectl create namespace homework-namespace
+```
+Переключение в контекст
+
+```shell
+kubectl config use-context netuser-context 
+```
+
+<details>
+
+<summary> <h5>Role, RoleBinding, Deployment</h5></summary>
+
+```yaml
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: homework-namespace
+  name: podinfo-viewer
+rules:
+- apiGroups: [""]
+  resources: ["pods","pods/log"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["extensions", "apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+
+---
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-pods
+  namespace: homework-namespace
+subjects:
+- kind: User
+  name: netuser
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: podinfo-viewer
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx
+  name: nginx-simple
+  namespace: homework-namespace
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+
+```
+</details>
 
 
-### Задание 3
+Результаты выполнения: 
 
-1.    Создайте новую ветку dev и переключитесь на неё.
-2.    Создайте в ветке dev файл test.sh с произвольным содержимым.
-3.    Сделайте несколько коммитов и пушей в ветку dev, имитируя активную работу над файлом в процессе разработки.
-4.    Переключитесь на основную ветку.
-5.    Добавьте файл main.sh в основной ветке с произвольным содержимым, сделайте комит и пуш . Так имитируется продолжение общекомандной разработки в основной ветке во время разработки отдельного функционала в dev ветке.
-6.    Сделайте мердж dev ветки в основную с помощью git merge dev. Напишите осмысленное сообщение в появившееся окно комита.
-7.    Сделайте пуш в основной ветке.
-8.    Не удаляйте ветку dev.
+Созданный пользователь не имеет доступа в дефолтный неймспейс, но имеет доступ в homework-namespace.
 
-`В качестве ответа прикрепите ссылку на граф коммитов https://github.com/ваш-логин/ваш-репозиторий/network в ваш md-файл с решением.`
-### Решение 3
+![alt text](img/result.jpg)
 
-https://github.com/igors-source/githw/network
+Вывод команд (`kubectl logs pod <pod_id>`, `kubectl describe pod <pod_id>`).
 
-## Дополнительные задания (со звездочкой*)
+![alt text](img/logs.jpg)
 
-Эти задания дополнительные (не обязательные к выполнению) и никак не повлияют на получение вами зачета по этому домашнему заданию. Вы можете их выполнить, если хотите глубже и/или шире разобраться в материале.
-
-### Задание 4
-
-
- 1.   Создайте ветку conflict и переключитесь на неё.
- 2.   Внесите изменения в файл test.sh.
- 3.   Сделайте коммит и пуш.
- 4.   Переключитесь на основную ветку.
- 5.   Измените ту же самую строчку в файле test.sh.
- 6.   Сделайте коммит и пуш.
- 7.   Сделайте мердж ветки conflict в основную ветку и решите конфликт так, чтобы в результате в файле оказался код из ветки conflict.
-
-В качестве ответа на задание прикрепите ссылку на граф коммитов https://github.com/ваш-логин/ваш-репозиторий/network в ваш md-файл с решением.
-
-
-### Решение 4
-https://github.com/igors-source/githw/network
+![alt text](img/describe.jpg)
