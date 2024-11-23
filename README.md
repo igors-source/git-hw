@@ -16,7 +16,10 @@ helm create nginx-homework
 ```
 
 Для выбора версии выставляем значение tag, иначе выбирается версия по умолчанию
-```image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"```yml
+
+```yaml
+image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+```
 
 [HelmChart](nginx-test)
 
