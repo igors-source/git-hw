@@ -1,0 +1,8 @@
+#cloud-config
+users:
+ - name: motorher
+   groups: sudo
+   shell: /bin/bash
+   sudo: ['ALL=(ALL) NOPASSWD:ALL']
+   ssh-authorized-keys:
+    - "Публичный ключ не критично выкладывать в гит, но не рекомендуется из соображений безопасности"
