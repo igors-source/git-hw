@@ -44,4 +44,4 @@ Host 192.168.20.250
 
 Карта сети:
 
-![alt text](img/netvpc.jpg)
+![alt text](img/net.jpg)
