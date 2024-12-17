@@ -15,7 +15,7 @@ provider "yandex" {
 }
 
 resource "yandex_iam_service_account" "ig-sa" {
-  name        = "ig-sa"
+  name        = "ig-sa-id"
   description = "service account to manage IG"
 }
 
@@ -24,152 +24,137 @@ resource "yandex_resourcemanager_folder_iam_member" "editor" {
   role      = "editor"
   member    = "serviceAccount:${yandex_iam_service_account.ig-sa.id}"
 }
-####################################################################################################
-#                                   сети и подсети маршруты
-####################################################################################################
+
+#Ключи
+resource "yandex_iam_service_account_static_access_key" "sa-key" {
+  service_account_id = yandex_iam_service_account.ig-sa.id
+  description        = "storage key"
+}
+
+#создать бакет
+resource "yandex_storage_bucket" "shadrine" {
+  access_key = yandex_iam_service_account_static_access_key.sa-key.access_key
+  secret_key = yandex_iam_service_account_static_access_key.sa-key.secret_key
+  bucket     = "bucket-for-kotishe-picture"
+  acl    = "public-read"
+  max_size   = 1073741824
+  website {
+    index_document = "silk.jpg"
+  }
+
+  anonymous_access_flags {
+    read        = true
+    list        = true
+    config_read = true
+  }
+}
+resource "yandex_storage_object" "kotishe" {
+  access_key = yandex_iam_service_account_static_access_key.sa-key.access_key
+  secret_key = yandex_iam_service_account_static_access_key.sa-key.secret_key
+  bucket = yandex_storage_bucket.shadrine.id
+  key    = "silk.jpg"
+  source = "./img/silk.jpg"
+  tags = {
+    test = "value"
+  }
+}
+
 #сеть
-resource "yandex_vpc_network" "homework-net" {
-  name = "homework-vpc"
+resource "yandex_vpc_network" "homework-net-1" {
+  name = "homework-vpc-1"
 }
 #подсеть паблик
 resource "yandex_vpc_subnet" "public" {
   name           = "public_subnet"
   v4_cidr_blocks = ["192.168.10.0/24"]
   zone           = "ru-central1-a"
-  network_id     = yandex_vpc_network.homework-net.id
-}
-#подсеть private
-resource "yandex_vpc_subnet" "private" {
-  name           = "private_subnet"
-  v4_cidr_blocks = ["192.168.20.0/24"]
-  zone           = "ru-central1-a"
-  network_id     = yandex_vpc_network.homework-net.id
-  route_table_id = yandex_vpc_route_table.nat-instance-route.id
-}
-#маршрут
-resource "yandex_vpc_route_table" "nat-instance-route" {
-  name       = "route_table"
-  network_id = yandex_vpc_network.homework-net.id
-  static_route {
-    destination_prefix = "0.0.0.0/0"
-    next_hop_address   = yandex_compute_instance.nat-instance.network_interface.0.ip_address
-  }
-}
-####################################################################################################
-#                                   диски и инстансы
-####################################################################################################
-#диск нат
-resource "yandex_compute_disk" "disk-nat" {
-  name     = "disk-nat"
-  zone     = "ru-central1-a"
-  size     = 20
-  image_id = "fd80mrhj8fl2oe87o4e1"
+  network_id     = yandex_vpc_network.homework-net-1.id
 }
 
-#Нат инстанс
-resource "yandex_compute_instance" "nat-instance" {
-  name        = "nat-inst"
-  platform_id = "standard-v3"
-  zone        = "ru-central1-a"
+#вычислительная группа
+resource "yandex_compute_instance_group" "groupodin" {
+  name                = "gr1"
+  folder_id           = "b1gd6mkmc0olqg7vk03m"
+  service_account_id  = yandex_iam_service_account.ig-sa.id
+  deletion_protection = false
+  depends_on          = [yandex_resourcemanager_folder_iam_member.editor]
+  instance_template {
+    platform_id = "standard-v3"
+    resources {
+      core_fraction = 20
+      memory        = 4
+      cores         = 2
+    }
+    boot_disk {
+      mode = "READ_WRITE"
+      initialize_params {
+        image_id = "fd827b91d99psvq5fjit"
+        size     = 20
+      }
+    }
 
-  resources {
-    core_fraction = 20
-    cores         = 2
-    memory        = 2
+    scheduling_policy {
+      preemptible = true
+    }
+
+
+    network_interface {
+      network_id         = "${yandex_vpc_network.homework-net-1.id}"
+      subnet_ids         = ["${yandex_vpc_subnet.public.id}"]
+      nat        = true
+    }
+    metadata = {
+      user-data = "${file("./metadata.yml")}"
+    }
+    network_settings {
+      type = "STANDARD"
+    }
   }
 
-  boot_disk {
-    disk_id = yandex_compute_disk.disk-nat.id
+  scale_policy {
+    fixed_scale {
+      size = 3
+    }
+  }
+  # zone = "ru-central1-a"
+  allocation_policy {
+      zones = ["ru-central1-a"]
   }
 
-  scheduling_policy {
-    preemptible = true
+  deploy_policy {
+    max_unavailable = 3
+    max_creating    = 3
+    max_expansion   = 3
+    max_deleting    = 3
   }
 
-  network_interface {
-    index     = 1
-    subnet_id = yandex_vpc_subnet.public.id
-    ip_address = "192.168.10.254"
-    nat       = true
+  load_balancer {
+    target_group_name        = "target-group"
+    target_group_description = "Network Load Balancer"
   }
 
-  metadata = {
-    user-data = "${file("./metadata.yml")}"
-  }
 }
 
-resource "yandex_compute_disk" "disk-public" {
-  name     = "disk-public"
-  zone     = "ru-central1-a"
-  size     = 20
-  image_id = "fd8tiutrcvb5e2jd9d0q"
-}
-#public vm
-resource "yandex_compute_instance" "vm-public" {
-  name        = "vm_public"
-  platform_id = "standard-v3"
-  zone        = "ru-central1-a"
+resource "yandex_lb_network_load_balancer" "bal-1" {
+  name = "bal-1"
 
-  resources {
-    core_fraction = 20
-    cores         = 2
-    memory        = 2
+  listener {
+    name = "network-load-balancer-1-listener"
+    port = 80
+    external_address_spec {
+      ip_version = "ipv4"
+    }
   }
 
-  boot_disk {
-    disk_id = yandex_compute_disk.disk-public.id
-  }
+  attached_target_group {
+    target_group_id = yandex_compute_instance_group.groupodin.load_balancer.0.target_group_id
 
-  scheduling_policy {
-    preemptible = true
-  }
-
-  network_interface {
-    index     = 1
-    subnet_id = yandex_vpc_subnet.public.id
-    ip_address = "192.168.10.250"
-    nat       = true
-  }
-
-  metadata = {
-    user-data = "${file("./metadata.yml")}"
-  }
-}
-# private vm
-resource "yandex_compute_disk" "disk-private" {
-  name     = "disk-private"
-  zone     = "ru-central1-a"
-  size     = 20
-  image_id = "fd8tiutrcvb5e2jd9d0q"
-}
-
-resource "yandex_compute_instance" "vm-private" {
-  name        = "vm_private"
-  platform_id = "standard-v3"
-  zone        = "ru-central1-a"
-
-  resources {
-    core_fraction = 20
-    cores         = 2
-    memory        = 2
-  }
-
-  boot_disk {
-    disk_id = yandex_compute_disk.disk-private.id
-  }
-
-  scheduling_policy {
-    preemptible = true
-  }
-
-  network_interface {
-    index     = 1
-    subnet_id = yandex_vpc_subnet.private.id
-    ip_address = "192.168.20.250"
-    nat       = false
-  }
-
-  metadata = {
-    user-data = "${file("./metadata.yml")}"
+    healthcheck {
+      name = "http"
+      http_options {
+        port = 80
+        path = "/index.html"
+      }
+    }
   }
 }

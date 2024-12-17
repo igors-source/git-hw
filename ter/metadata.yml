@@ -5,4 +5,8 @@ users:
    shell: /bin/bash
    sudo: ['ALL=(ALL) NOPASSWD:ALL']
    ssh-authorized-keys:
-    - "Публичный ключ не критично выкладывать в гит, но не рекомендуется из соображений безопасности"
+      - ssh-rsa
+      
+
+bootcmd:
+  - echo '<p>vm id:' "$(hostname)" '</p><br><img src="https://storage.yandexcloud.net/bucket-for-kotishe-picture/silk.jpg?x=500&y=-500">' >  /var/www/html/index.html
